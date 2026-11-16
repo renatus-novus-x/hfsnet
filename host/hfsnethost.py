@@ -19,8 +19,10 @@ RES_HDR = struct.Struct(">2sBBIiHHII")  # 24 バイト
 
 OP_OPEN, OP_CLOSE, OP_CONNECT, OP_SEND, OP_RECV = 1, 2, 3, 4, 5
 OP_STATE, OP_RESOLVE, OP_BIND, OP_LISTEN, OP_ACCEPT = 6, 7, 8, 9, 10
+OP_SHUTDOWN = 11
 OP_NAMES = {1: "OPEN", 2: "CLOSE", 3: "CONNECT", 4: "SEND", 5: "RECV",
-            6: "STATE", 7: "RESOLVE", 8: "BIND", 9: "LISTEN", 10: "ACCEPT"}
+            6: "STATE", 7: "RESOLVE", 8: "BIND", 9: "LISTEN", 10: "ACCEPT",
+            11: "SHUTDOWN"}
 
 ST_CLOSED, ST_LISTEN, ST_SYN_SENT, ST_SYN_RECEIVED = 0, 1, 2, 3
 ST_ESTABLISHED, ST_CLOSE_WAIT = 4, 5
@@ -118,6 +120,18 @@ class Host:
 
     def op_close(self, idx):
         self.close_slot(self.slots[idx])
+        return 0, 0, 0, b""
+
+    def op_shutdown(self, idx, how):
+        sl = self.slots[idx]
+        if sl.sock is None:
+            return -1, 0, 0, b""
+        hows = (socket.SHUT_RD, socket.SHUT_WR, socket.SHUT_RDWR)
+        try:
+            sl.sock.shutdown(hows[how] if 0 <= how <= 2
+                             else socket.SHUT_RDWR)
+        except OSError:
+            return -1, 0, 0, b""
         return 0, 0, 0, b""
 
     def op_connect(self, idx, addr, port):
@@ -275,6 +289,8 @@ class Host:
             result, rlen, aux, rpayload = self.op_listen(idx, arg)
         elif op == OP_ACCEPT:
             result, rlen, aux, rpayload, extra_port = self.op_accept(idx, arg)
+        elif op == OP_SHUTDOWN:
+            result, rlen, aux, rpayload = self.op_shutdown(idx, arg)
         else:
             result, rlen, aux, rpayload = -1, 0, 0, b""
 

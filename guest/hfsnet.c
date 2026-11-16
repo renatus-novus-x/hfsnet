@@ -54,6 +54,7 @@ enum {
 #define OP_BIND     8
 #define OP_LISTEN   9
 #define OP_ACCEPT   10
+#define OP_SHUTDOWN 11
 
 /* 状態コード */
 #define ST_CLOSED       0
@@ -538,6 +539,19 @@ static long ti_close_s(long fd)         /* 引数は配列でなく fd そのも
     return 0;
 }
 
+static long ti_shutdown(long *arg)
+{
+    struct resinfo res;
+    int idx = sock_index(arg[0]);
+    if (idx < 0)
+        return -1;
+    /* how (0=RD, 1=WR, 2=RDWR) は listen の backlog と同じ arg 欄で渡す */
+    if (rpc(OP_SHUTDOWN, idx, 0, (unsigned short)arg[1], 0, 0,
+            NULL, 0, &res, NULL) < 0 || res.result < 0)
+        return -1;
+    return 0;
+}
+
 static long ti_socklen(long *arg)
 {
     struct resinfo res;
@@ -646,7 +660,7 @@ int do_command(void)
     case TI_getpeername:
         return ti_getsockname(arg, 1);
     case TI_shutdown:
-        return 0;
+        return ti_shutdown(arg);
     case TI_sockstate:
         return ti_sockstate((long)arg);
     case TI_sock_top:
