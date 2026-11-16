@@ -294,8 +294,8 @@ static void init_sock(int idx)
     memset(u, 0, sizeof(*u));
     memset(namebuf[idx], 0, 16);
     memset(peerbuf[idx], 0, 16);
-    namebuf[idx][1] = 2;        /* sin_family = AF_INET (BE で 00 02) */
-    peerbuf[idx][1] = 2;
+    /* sin_family は 0 (= AF_INET, elf2x68k の規約) なので、
+       上の memset で 0 埋めされたままでよい */
     u->refcnt = 1;
     u->type = 1;                /* TCP */
     u->name = (char *)namebuf[idx];
@@ -323,9 +323,12 @@ static long ti_socket(long *arg)
     struct resinfo res;
     int idx;
 
-    if (arg[0] != 2)            /* AF_INET のみ */
+    /* elf2x68k の <sys/socket.h> の規約では PF_INET = 0, SOCK_STREAM = 0
+       (BSD の 2, 1 ではない)。libsocket は引数を素通しするので、
+       アプリからは (0, 0, 0) が届く */
+    if (arg[0] != 0)            /* PF_INET のみ */
         return -1;
-    if (arg[1] != 1)            /* SOCK_STREAM のみ (v1 は TCP だけ) */
+    if (arg[1] != 0)            /* SOCK_STREAM のみ (v1 は TCP だけ) */
         return -1;
     idx = alloc_sock();
     if (idx < 0)
@@ -382,7 +385,7 @@ static long ti_accept(long *arg)
             struct sockaddr_in_h *sin;
             init_sock(nidx);
             sin = (struct sockaddr_in_h *)peerbuf[nidx];
-            sin->sin_family = 2;
+            sin->sin_family = 0;        /* AF_INET (elf2x68k の規約) */
             sin->sin_port = res.port;
             sin->sin_addr = res.aux;
             sock_state[nidx] = ST_ESTABLISHED;
@@ -588,7 +591,7 @@ static long ti_gethostbyname(const char *name)
     host_aliases[0] = NULL;
     hostentbuf.h_name = host_namebuf;
     hostentbuf.h_aliases = host_aliases;
-    hostentbuf.h_addrtype = 2;          /* AF_INET */
+    hostentbuf.h_addrtype = 0;          /* AF_INET (elf2x68k の規約) */
     hostentbuf.h_length = 4;
     hostentbuf.h_addr_list = host_addr_list;
     return (long)&hostentbuf;
