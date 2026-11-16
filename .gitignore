@@ -1,0 +1,7 @@
+*.o
+*.elf
+guest/hfsnet.x
+__pycache__/
+HFSREQ.BIN
+HFSRES.BIN
+HFSRES.TMP
