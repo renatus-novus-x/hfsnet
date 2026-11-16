@@ -244,16 +244,16 @@ class Host:
     def op_accept(self, idx, newidx):
         sl = self.slots[idx]
         if sl.sock is None or not sl.listening:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         if not (0 <= newidx < NSOCK):
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         r, _, _ = select.select([sl.sock], [], [], RECV_WAIT)
         if not r:
-            return -2, 0, 0, b""
+            return -2, 0, 0, b"", 0
         try:
             conn, peer = sl.sock.accept()
         except OSError:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         conn.setblocking(False)
         nsl = self.slots[newidx]
         self.close_slot(nsl)
