@@ -36,6 +36,11 @@ iperf.x in server mode (left: guest, right: host side; played at 2x speed):
 
 ![iperf.x in server mode](iperf-server.gif)
 
+sntp.x running (left: guest, right: host side; fetching the time from an
+SNTP server over UDP):
+
+![sntp.x running](sntp-host.gif)
+
 ## Requirements
 
 - A shared folder that both the guest and the host can read and write
@@ -44,8 +49,9 @@ iperf.x in server mode (left: guest, right: host side; played at 2x speed):
 - Guest applications that use an inetd.x-compatible API, such as elf2x68k's
   libsocket
 
-Verified combination: over XEiJ's HFS, HTTP fetching with httpclient.x and
-iperf in both client and server modes.
+Verified combination: over XEiJ's HFS, HTTP fetching with httpclient.x,
+iperf in both client and server modes, and SNTP time fetching with
+sntp.x (UDP).
 
 ## Download
 
