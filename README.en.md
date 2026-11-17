@@ -5,7 +5,8 @@
 hfsnet is an experimental implementation that gives Human68k a Keisoku Giken
 **inetd.x-compatible API** (the TCP/IP driver calling convention, the so-called
 TI entry) using nothing but a folder that the guest can read and write from
-the host side (such as XEiJ's **HFS**).
+the host side (such as XEiJ's **HFS**, XM6 TypeG's **Windrv**, and
+WebX68k's **HostFS**).
 
 No emulator-specific features are used — only ordinary file reads and writes.
 
@@ -49,9 +50,13 @@ SNTP server over UDP):
 - Guest applications that use an inetd.x-compatible API, such as elf2x68k's
   libsocket
 
-Verified combination: over XEiJ's HFS, HTTP fetching with httpclient.x,
-iperf in both client and server modes, and SNTP time fetching with
-sntp.x (UDP).
+Verified environments: three. On each of XEiJ (HFS), XM6 TypeG (Windrv),
+and WebX68k (HostFS), HTTP fetching with httpclient.x, iperf in both
+client and server modes, and SNTP time fetching with sntp.x (UDP) have
+been verified. Compatibility with the TCPPACK software was also checked
+on all three environments, with nearly identical results (the only
+difference: on WebX68k, telnet.x gets partway through the session after
+connecting).
 
 ## Download
 
