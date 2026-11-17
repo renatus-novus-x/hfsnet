@@ -16,6 +16,26 @@
 受信の通知は割り込みではなく、ドライバが応答ファイルを定期的に開き直す
 ポーリングで実現しています（ブロッキング呼び出しはドライバ内部のループで待ちます）。
 
+## 動作の様子
+
+いずれも XEiJ 上での実行です。
+
+httpclient.x の実行（ゲスト画面）:
+
+![httpclient.x の実行](httpclient-xeij.gif)
+
+httpclient.x の実行（左: ゲスト、右: ホスト側 hfsnethost.py のログ）:
+
+![httpclient.x とホスト側ログ](httpclient-host.gif)
+
+iperf.x クライアントモード（左: ゲスト、右: ホスト側）:
+
+![iperf.x クライアントモード](iperf-client.gif)
+
+iperf.x サーバーモード（左: ゲスト、右: ホスト側。2倍速再生）:
+
+![iperf.x サーバーモード](iperf-server.gif)
+
 ## 動作条件
 
 - ゲストとホストで**双方向に読み書きできる共有フォルダ**があること
@@ -49,9 +69,9 @@ iperf のクライアント／サーバー動作を確認しています。
 | 2 | 1 | 操作コード（下表） |
 | 3 | 1 | ソケット番号（ゲスト側のスロット 0〜31） |
 | 4 | 4 | 通し番号（ゲストが要求ごとに増やす。応答の照合に使う） |
-| 8 | 2 | ポート番号（CONNECT / BIND で使用） |
-| 10 | 2 | 補助引数（LISTEN の backlog、ACCEPT の受け入れ先スロット、SHUTDOWN の how） |
-| 12 | 4 | IPv4 アドレス（CONNECT / BIND で使用） |
+| 8 | 2 | ポート番号（CONNECT / BIND で使用。UDP の SEND では宛先ポート） |
+| 10 | 2 | 補助引数（OPEN のソケット種別（0 = SOCK_STREAM、1 = SOCK_DGRAM）、LISTEN の backlog、ACCEPT の受け入れ先スロット、SHUTDOWN の how） |
+| 12 | 4 | IPv4 アドレス（CONNECT / BIND で使用。UDP の SEND では宛先アドレス） |
 | 16 | 4 | ペイロード長（RECV では受け取り上限） |
 | 20 | 可変 | ペイロード（SEND のデータ、RESOLVE のホスト名など） |
 
@@ -64,10 +84,10 @@ iperf のクライアント／サーバー動作を確認しています。
 | 3 | 1 | ソケット番号（要求の写し） |
 | 4 | 4 | 通し番号（要求の写し） |
 | 8 | 4 | 結果（操作ごとに意味が違う。下表） |
-| 12 | 2 | ポート番号（ACCEPT で相手のポート） |
+| 12 | 2 | ポート番号（ACCEPT で相手のポート、UDP の RECV では送信元ポート） |
 | 14 | 2 | 予約（0） |
 | 16 | 4 | ペイロード長（STATE では受信可能バイト数） |
-| 20 | 4 | 補助値（STATE では状態コード、RESOLVE では IPv4 アドレス、ACCEPT では相手の IPv4 アドレス） |
+| 20 | 4 | 補助値（STATE では状態コード、RESOLVE では IPv4 アドレス、ACCEPT では相手の IPv4 アドレス、UDP の RECV では送信元 IPv4 アドレス） |
 | 24 | 可変 | ペイロード（RECV のデータ） |
 
 ### 操作コードと結果の意味
@@ -108,8 +128,14 @@ getsockname / getpeername / sockstate / sock_top / gethostbyname
 
 それ以外は -1 を返します。制限事項:
 
-- TCP（SOCK_STREAM）のみ。UDP と RAW は socket() が -1 を返します
-- sendto / recvfrom のアドレス指定は無視し、接続済みソケットとして扱います
+- 対応するソケット種別は TCP（SOCK_STREAM）と UDP（SOCK_DGRAM）です。
+  RAW は socket() が -1 を返します
+- ICMP は非対応です。ping.x は ICMP（インターネット制御メッセージ・
+  プロトコル）を使うため生ソケット（SOCK_RAW）で開くのですが、本ドライバは
+  TCP / UDP のみ対応で、生ソケットの socket() には -1 を返します。
+  TCP と UDP のみの対応でも、実用上はそれなりに使えます
+- sendto / recvfrom のアドレス指定は UDP では有効です
+  （TCP では接続済みソケットとして扱います）
 - MSG_PEEK などの flags は無視します
 - getsockname は bind したアドレス（未 bind なら 0.0.0.0:0）を返します
 
