@@ -20,10 +20,6 @@
 
 いずれも XEiJ 上での実行です。
 
-httpclient.x の実行（ゲスト画面）:
-
-![httpclient.x の実行](httpclient-xeij.gif)
-
 httpclient.x の実行（左: ゲスト、右: ホスト側 hfsnethost.py のログ）:
 
 ![httpclient.x とホスト側ログ](httpclient-host.gif)
