@@ -26,6 +26,12 @@
 動作確認済みの組み合わせ: XEiJ の HFS 経由で、httpclient.x の HTTP 取得と
 iperf のクライアント／サーバー動作を確認しています。
 
+## ダウンロード
+
+ビルド済みパッケージ（`hfsnet.x` と `hfsnethost.py` をまとめた zip）は
+[Releases](https://github.com/renatus-novus-x/hfsnet/releases) から
+ダウンロードできます。
+
 ## ファイルプロトコル
 
 共有フォルダに置くファイルは2つだけです。どちらもバイナリ形式、
