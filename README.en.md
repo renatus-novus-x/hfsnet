@@ -20,6 +20,26 @@ Receive notification is done by polling — the driver periodically re-opens
 the response file — rather than by interrupts (blocking calls wait in a loop
 inside the driver).
 
+## In action
+
+All of these were recorded on XEiJ.
+
+httpclient.x running (guest screen):
+
+![httpclient.x running](httpclient-xeij.gif)
+
+httpclient.x running (left: guest, right: the host-side hfsnethost.py log):
+
+![httpclient.x with the host-side log](httpclient-host.gif)
+
+iperf.x in client mode (left: guest, right: host side):
+
+![iperf.x in client mode](iperf-client.gif)
+
+iperf.x in server mode (left: guest, right: host side; played at 2x speed):
+
+![iperf.x in server mode](iperf-server.gif)
+
 ## Requirements
 
 - A shared folder that both the guest and the host can read and write
@@ -54,9 +74,9 @@ values are big-endian (network byte order).
 | 2 | 1 | Operation code (see below) |
 | 3 | 1 | Socket number (guest-side slot 0–31) |
 | 4 | 4 | Sequence number (incremented by the guest per request; used to match responses) |
-| 8 | 2 | Port number (used by CONNECT / BIND) |
-| 10 | 2 | Auxiliary argument (LISTEN backlog, ACCEPT destination slot, SHUTDOWN how) |
-| 12 | 4 | IPv4 address (used by CONNECT / BIND) |
+| 8 | 2 | Port number (used by CONNECT / BIND; the destination port for UDP SEND) |
+| 10 | 2 | Auxiliary argument (socket type for OPEN (0 = SOCK_STREAM, 1 = SOCK_DGRAM), LISTEN backlog, ACCEPT destination slot, SHUTDOWN how) |
+| 12 | 4 | IPv4 address (used by CONNECT / BIND; the destination address for UDP SEND) |
 | 16 | 4 | Payload length (for RECV, the receive limit) |
 | 20 | variable | Payload (SEND data, the host name for RESOLVE, etc.) |
 
@@ -69,10 +89,10 @@ values are big-endian (network byte order).
 | 3 | 1 | Socket number (copy of the request) |
 | 4 | 4 | Sequence number (copy of the request) |
 | 8 | 4 | Result (meaning depends on the operation; see below) |
-| 12 | 2 | Port number (the peer's port for ACCEPT) |
+| 12 | 2 | Port number (the peer's port for ACCEPT; the source port for UDP RECV) |
 | 14 | 2 | Reserved (0) |
 | 16 | 4 | Payload length (for STATE, the number of bytes available to receive) |
-| 20 | 4 | Auxiliary value (state code for STATE, IPv4 address for RESOLVE, the peer's IPv4 address for ACCEPT) |
+| 20 | 4 | Auxiliary value (state code for STATE, IPv4 address for RESOLVE, the peer's IPv4 address for ACCEPT, the source IPv4 address for UDP RECV) |
 | 24 | variable | Payload (data for RECV) |
 
 ### Operation codes and the meaning of the result
@@ -115,9 +135,14 @@ getsockname / getpeername / sockstate / sock_top / gethostbyname
 
 Any other function returns -1. Limitations:
 
-- TCP (SOCK_STREAM) only; socket() returns -1 for UDP and RAW
-- sendto / recvfrom ignore the address arguments and treat the socket as
-  connected
+- Socket types supported are TCP (SOCK_STREAM) and UDP (SOCK_DGRAM);
+  socket() returns -1 for RAW
+- ICMP is not supported. ping.x opens a raw socket (SOCK_RAW) because it
+  uses ICMP (Internet Control Message Protocol), but this driver supports
+  TCP / UDP only and returns -1 from socket() for raw sockets. TCP and
+  UDP alone still cover a reasonable range of uses
+- The address arguments of sendto / recvfrom are honored for UDP
+  (for TCP the socket is treated as connected)
 - Flags such as MSG_PEEK are ignored
 - getsockname returns the bound address (0.0.0.0:0 if not bound)
 
