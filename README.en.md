@@ -31,6 +31,11 @@ inside the driver).
 Verified combination: over XEiJ's HFS, HTTP fetching with httpclient.x and
 iperf in both client and server modes.
 
+## Download
+
+A prebuilt package (a zip containing `hfsnet.x` and `hfsnethost.py`) is
+available from [Releases](https://github.com/renatus-novus-x/hfsnet/releases).
+
 ## File protocol
 
 Only two files live in the shared folder. Both are binary, and multi-byte
