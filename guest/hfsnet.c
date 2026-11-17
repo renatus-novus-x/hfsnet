@@ -87,7 +87,7 @@ static const char * const state_names[] = {
 struct usock {
     int refcnt;
     char noblock;
-    char type;                  /* 0 = 未使用, 1 = TCP */
+    char type;                  /* 0 = 未使用, 1 = TCP, 2 = UDP */
     int rdysock;
     void *p;
     char *name;
@@ -289,7 +289,7 @@ static int alloc_sock(void)
     return -1;
 }
 
-static void init_sock(int idx)
+static void init_sock(int idx, int type)
 {
     struct usock *u = &usocks[idx];
     memset(u, 0, sizeof(*u));
@@ -298,7 +298,7 @@ static void init_sock(int idx)
     /* sin_family は 0 (= AF_INET, elf2x68k の規約) なので、
        上の memset で 0 埋めされたままでよい */
     u->refcnt = 1;
-    u->type = 1;                /* TCP */
+    u->type = (char)type;       /* 1 = TCP, 2 = UDP */
     u->name = (char *)namebuf[idx];
     u->namelen = 16;
     u->peername = (char *)peerbuf[idx];
@@ -324,20 +324,21 @@ static long ti_socket(long *arg)
     struct resinfo res;
     int idx;
 
-    /* elf2x68k の <sys/socket.h> の規約では PF_INET = 0, SOCK_STREAM = 0
-       (BSD の 2, 1 ではない)。libsocket は引数を素通しするので、
-       アプリからは (0, 0, 0) が届く */
+    /* elf2x68k の <sys/socket.h> の規約では PF_INET = 0, SOCK_STREAM = 0,
+       SOCK_DGRAM = 1 (BSD の 2, 1 ではない)。libsocket は引数を素通し
+       するので、アプリからは (0, 0, 0) や (0, 1, 0) が届く */
     if (arg[0] != 0)            /* PF_INET のみ */
         return -1;
-    if (arg[1] != 0)            /* SOCK_STREAM のみ (v1 は TCP だけ) */
+    if (arg[1] != 0 && arg[1] != 1)     /* STREAM / DGRAM のみ (RAW は不可) */
         return -1;
     idx = alloc_sock();
     if (idx < 0)
         return -1;
-    if (rpc(OP_OPEN, idx, 0, 0, 0, 0, NULL, 0, &res, NULL) < 0 ||
-        res.result < 0)
+    /* ソケット種別は要求ヘッダの arg 欄でホストへ伝える */
+    if (rpc(OP_OPEN, idx, 0, (unsigned short)arg[1], 0, 0, NULL, 0,
+            &res, NULL) < 0 || res.result < 0)
         return -1;
-    init_sock(idx);
+    init_sock(idx, arg[1] == 1 ? 2 : 1);
     return SOCKBASE + idx;
 }
 
@@ -384,7 +385,7 @@ static long ti_accept(long *arg)
             return -1;
         if (res.result == 0) {
             struct sockaddr_in_h *sin;
-            init_sock(nidx);
+            init_sock(nidx, 1);
             sin = (struct sockaddr_in_h *)peerbuf[nidx];
             sin->sin_family = 0;        /* AF_INET (elf2x68k の規約) */
             sin->sin_port = res.port;
@@ -442,8 +443,10 @@ static long ti_connect(long *arg)
     }
 }
 
-/* RECV の中核。戻り値: >0 受信バイト数, 0 EOF, -1 今は読めない/エラー */
-static long recv_core(int idx, char *buf, long len)
+/* RECV の中核。戻り値: >0 受信バイト数, 0 EOF, -1 今は読めない/エラー
+ * info が非 NULL なら、最後に応答した RECV の resinfo をコピーする
+ * (UDP の recvfrom が送信元アドレスを取り出すために使う) */
+static long recv_core(int idx, char *buf, long len, struct resinfo *info)
 {
     struct resinfo res;
     if (len > MAXDATA)
@@ -452,6 +455,8 @@ static long recv_core(int idx, char *buf, long len)
         if (rpc(OP_RECV, idx, 0, 0, 0, (unsigned long)len,
                 NULL, 0, &res, databuf) < 0)
             return -1;
+        if (info)
+            *info = res;
         if (res.result > 0) {
             memcpy(buf, databuf, res.result);
             return res.result;
@@ -472,26 +477,40 @@ static long ti_read_s(long *arg)
     int idx = sock_index(arg[0]);
     if (idx < 0 || arg[2] <= 0)
         return -1;
-    return recv_core(idx, (char *)arg[1], arg[2]);
+    return recv_core(idx, (char *)arg[1], arg[2], NULL);
 }
 
 static long ti_recvfrom(long *arg)
 {
+    struct resinfo res;
     long r;
     int idx = sock_index(arg[0]);
     if (idx < 0 || arg[2] <= 0)
         return -1;
-    r = recv_core(idx, (char *)arg[1], arg[2]);
+    r = recv_core(idx, (char *)arg[1], arg[2], &res);
     if (r >= 0 && arg[4]) {
-        memcpy((void *)arg[4], peerbuf[idx], 16);
+        if (usocks[idx].type == 2 && r > 0) {
+            /* UDP: 送信元は RECV 応答の aux (IP) と port 欄に載っている */
+            struct sockaddr_in_h sin;
+            memset(&sin, 0, sizeof(sin));
+            sin.sin_family = 0;         /* AF_INET (elf2x68k の規約) */
+            sin.sin_port = res.port;
+            sin.sin_addr = res.aux;
+            memcpy((void *)arg[4], &sin, 16);
+        } else {
+            memcpy((void *)arg[4], peerbuf[idx], 16);
+        }
         if (arg[5])
             *(int *)arg[5] = 16;
     }
     return r;
 }
 
-/* SEND の中核。戻り値: 送信バイト数, -1 エラー */
-static long send_core(int idx, const char *buf, long len)
+/* SEND の中核。戻り値: 送信バイト数, -1 エラー
+ * daddr / dport は sendto 用の宛先 (ネットワークバイトオーダのまま)。
+ * 0 のときは宛先なし (接続済みソケット前提) */
+static long send_core(int idx, const char *buf, long len,
+                      unsigned long daddr, unsigned short dport)
 {
     struct resinfo res;
     long total = 0;
@@ -499,7 +518,7 @@ static long send_core(int idx, const char *buf, long len)
         long chunk = len - total;
         if (chunk > MAXDATA)
             chunk = MAXDATA;
-        if (rpc(OP_SEND, idx, 0, 0, 0, (unsigned long)chunk,
+        if (rpc(OP_SEND, idx, dport, 0, daddr, (unsigned long)chunk,
                 buf + total, (unsigned long)chunk, &res, NULL) < 0)
             return -1;
         if (res.result > 0) {
@@ -523,7 +542,23 @@ static long ti_write_s(long *arg)
         return -1;
     if (arg[2] == 0)
         return 0;
-    return send_core(idx, (const char *)arg[1], arg[2]);
+    return send_core(idx, (const char *)arg[1], arg[2], 0, 0);
+}
+
+static long ti_sendto(long *arg)
+{
+    /* libsocket の sendto は arg[4] に宛先 sockaddr へのポインタを置く
+       (recvfrom の arg[4] = 送信元と対称) */
+    struct sockaddr_in_h *sin = (struct sockaddr_in_h *)arg[4];
+    int idx = sock_index(arg[0]);
+    if (idx < 0 || arg[2] < 0)
+        return -1;
+    if (arg[2] == 0)
+        return 0;
+    if (sin == NULL)            /* 宛先なしは接続済みの相手へ送る */
+        return send_core(idx, (const char *)arg[1], arg[2], 0, 0);
+    return send_core(idx, (const char *)arg[1], arg[2],
+                     sin->sin_addr, sin->sin_port);
 }
 
 static long ti_close_s(long fd)         /* 引数は配列でなく fd そのもの */
@@ -649,8 +684,8 @@ int do_command(void)
         return ti_write_s(arg);
     case TI_recvfrom:
         return ti_recvfrom(arg);
-    case TI_sendto:             /* v1 では接続済みソケット前提で write と同じ */
-        return ti_write_s(arg);
+    case TI_sendto:
+        return ti_sendto(arg);
     case TI_close_s:
         return ti_close_s((long)arg);
     case TI_socklen:
