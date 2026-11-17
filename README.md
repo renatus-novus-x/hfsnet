@@ -1,7 +1,9 @@
-# hfsnet — HostFS 経由の inetd.x 互換ドライバ
+[English](README.en.md) | [日本語](README.md)
 
-ホスト側フォルダをゲストから読み書きできる仕組み（WebX68k の **HostFS**、
-XEiJ の **HFS** など）だけを使って、Human68k に計測技研 **inetd.x 互換 API**
+# hfsnet — 共有フォルダ経由の inetd.x 互換ドライバ
+
+ホスト側フォルダをゲストから読み書きできる仕組み（XEiJ の **HFS** など）
+だけを使って、Human68k に計測技研 **inetd.x 互換 API**
 （TCP/IP ドライバの呼び出し規約、いわゆる TI エントリ）を提供する実験実装です。
 
 エミュレータ固有の機能は一切使いません。使うのは通常のファイル読み書きだけです。
@@ -21,9 +23,8 @@ XEiJ の **HFS** など）だけを使って、Human68k に計測技研 **inetd.
 - ホスト側で `hfsnethost.py` が常駐していること
 - ゲスト側アプリは elf2x68k の libsocket など、inetd.x 互換 API を使うもの
 
-確認済みの組み合わせは未だありません（後述「検証状況」）。
-WebX68k の HostFS は、開くたびに実フォルダを名前で引き直して読み込む実装に
-なっていることをソースで確認済みで、この方式と噛み合います。
+動作確認済みの組み合わせ: XEiJ の HFS 経由で、httpclient.x の HTTP 取得と
+iperf のクライアント／サーバー動作を確認しています。
 
 ## ファイルプロトコル
 
@@ -43,7 +44,7 @@ WebX68k の HostFS は、開くたびに実フォルダを名前で引き直し�
 | 3 | 1 | ソケット番号（ゲスト側のスロット 0〜31） |
 | 4 | 4 | 通し番号（ゲストが要求ごとに増やす。応答の照合に使う） |
 | 8 | 2 | ポート番号（CONNECT / BIND で使用） |
-| 10 | 2 | 補助引数（LISTEN の backlog、ACCEPT の受け入れ先スロット） |
+| 10 | 2 | 補助引数（LISTEN の backlog、ACCEPT の受け入れ先スロット、SHUTDOWN の how） |
 | 12 | 4 | IPv4 アドレス（CONNECT / BIND で使用） |
 | 16 | 4 | ペイロード長（RECV では受け取り上限） |
 | 20 | 可変 | ペイロード（SEND のデータ、RESOLVE のホスト名など） |
@@ -77,6 +78,7 @@ WebX68k の HostFS は、開くたびに実フォルダを名前で引き直し�
 | 8 | BIND | 0 = 成功、-1 = 失敗 |
 | 9 | LISTEN | 0 = 成功、-1 = 失敗 |
 | 10 | ACCEPT | 0 = 成功、-2 = まだ接続が来ていない、-1 = 失敗 |
+| 11 | SHUTDOWN | 0 = 成功、-1 = 失敗。how（補助引数）: 0 = 受信側、1 = 送信側、2 = 両方 |
 
 状態コード: 0 CLOSED / 1 LISTEN / 2 SYN_SENT / 3 SYN_RECEIVED /
 4 ESTABLISHED / 5 CLOSE_WAIT / 6 FIN_WAIT / 7 TIME_WAIT / 8 CLOSING
@@ -95,7 +97,7 @@ WebX68k の HostFS は、開くたびに実フォルダを名前で引き直し�
 番号は計測技研 tcpipdrv.h の関数番号表（`_TI_` の並び順）に従います。
 
 実装済み: get_version / socket / bind / listen / accept / connect /
-read_s / write_s / recvfrom / sendto / close_s / socklen /
+read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
 getsockname / getpeername / sockstate / sock_top / gethostbyname
 
 それ以外は -1 を返します。制限事項:
@@ -114,11 +116,11 @@ getsockname / getpeername / sockstate / sock_top / gethostbyname
 
 ## ビルド
 
-ゲスト側（この VM の elf2x68k を使用）:
+ゲスト側（elf2x68k を使用）:
 
 ```sh
 cd guest
-export PATH=$HOME/workspace/x68k/m68k-xelf/bin:$PATH
+export PATH=<elf2x68k の bin ディレクトリ>:$PATH
 make        # hfsnet.x ができる
 ```
 
@@ -127,7 +129,7 @@ make        # hfsnet.x ができる
 ## 使い方
 
 1. 共有用フォルダを1つ作り（例: PC 側の `hfsnet-share`）、
-   エミュレータの HostFS / HFS でゲストのドライブとして接続する
+   エミュレータの HFS などでゲストのドライブとして接続する
    （書き込み許可で接続すること）
 2. ホスト側で相方を起動する:
    `python3 host/hfsnethost.py <共有フォルダのパス>`
@@ -136,20 +138,10 @@ make        # hfsnet.x ができる
 4. あとは libsocket を使うアプリ（elf2x68k サンプルの httpclient.x など）が
    そのまま通信できます
 
-## 検証状況
-
-- ホスト側アプリとプロトコル: `test/sim_test.py` で疑似ゲスト
-  （プロトコルを喋る Python スクリプト）から実 TCP の往復
-  （名前解決・接続・送受信・待ち受け・切断）を確認済み
-- ゲスト側ドライバ: ビルドと .X ファイル構造（先頭の署名と入口の位置）を確認済み
-- エミュレータ上での実動（WebX68k + HostFS で httpclient.x が
-  HTTP を取得するまで）は**未実施**。次の一手はこれです
-
 ## 既知の限界
 
 - 遅延: 1回の TI 呼び出しがファイル往復になるため、細かい読み書きを
   繰り返すアプリでは遅くなります。RECV はホスト側で最大 300ms 待ってから
   「データ無し」を返すので、無駄な往復は抑えています
 - 常駐メモリ: ドライバはイメージ全体を常駐させます
-  （elf2x68k の常駐用セクションで切り詰めるのは今後の課題）
 - ドライバの多重常駐は、既存の TCP/IP ドライバ検索で検出して止めます
