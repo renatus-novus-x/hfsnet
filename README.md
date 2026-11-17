@@ -129,7 +129,9 @@ WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 
 実装済み: get_version / socket / bind / listen / accept / connect /
 read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
-getsockname / getpeername / sockstate / sock_top / gethostbyname
+getsockname / getpeername / sockkick / usesock / recvline / sendline /
+rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
+psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
 
 それ以外は -1 を返します。制限事項:
 
