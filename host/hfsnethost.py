@@ -42,6 +42,7 @@ class Slot:
         self.state = ST_CLOSED
         self.listening = False
         self.eof = False        # 相手が閉じて読み切った
+        self.udp = False        # True ならデータグラムソケット
 
 
 class Host:
@@ -61,6 +62,9 @@ class Host:
             return
         if sl.listening:
             sl.state = ST_LISTEN
+            return
+        if sl.udp:
+            sl.state = ST_ESTABLISHED   # UDP は接続という概念がない
             return
         if sl.state == ST_SYN_SENT:
             _, w, _ = select.select([], [sl.sock], [], 0)
@@ -95,6 +99,7 @@ class Host:
         sl.state = ST_CLOSED
         sl.listening = False
         sl.eof = False
+        sl.udp = False
 
     def recv_avail(self, sl):
         if sl.sock is None or sl.listening:
@@ -108,14 +113,20 @@ class Host:
             return 0
 
     # ---------------- 各操作 ----------------
-    def op_open(self, idx):
+    def op_open(self, idx, arg=0):
+        # arg はソケット種別 (elf2x68k の規約: 0 = SOCK_STREAM, 1 = SOCK_DGRAM)
         sl = self.slots[idx]
         self.close_slot(sl)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if arg == 1:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sl.udp = True
+            sl.state = ST_ESTABLISHED   # UDP は開いた時点で送受信できる
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sl.state = ST_CLOSED
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.setblocking(False)
         sl.sock = s
-        sl.state = ST_CLOSED
         return 0, 0, 0, b""
 
     def op_close(self, idx):
@@ -151,10 +162,22 @@ class Host:
         sl.state = ST_CLOSED
         return -1, 0, 0, b""
 
-    def op_send(self, idx, payload):
+    def op_send(self, idx, payload, addr=0, port=0):
         sl = self.slots[idx]
         if sl.sock is None:
             return -1, 0, 0, b""
+        if sl.udp:
+            # 宛先指定があれば sendto、無ければ connect 済みの相手へ send
+            try:
+                if addr or port:
+                    n = sl.sock.sendto(payload, (ipstr(addr), port))
+                else:
+                    n = sl.sock.send(payload)
+            except (BlockingIOError, InterruptedError):
+                return -2, 0, 0, b""
+            except OSError:
+                return -1, 0, 0, b""
+            return n, 0, 0, b""
         self.refresh_state(sl)
         if sl.state not in (ST_ESTABLISHED, ST_CLOSE_WAIT):
             return -1, 0, 0, b""
@@ -181,29 +204,43 @@ class Host:
         return sent, 0, 0, b""
 
     def op_recv(self, idx, maxlen):
+        # 戻り値は (result, rlen, aux, payload, extra_port)。
+        # UDP では送信元 IP を aux、送信元ポートを extra_port に載せる。
         sl = self.slots[idx]
         if sl.sock is None:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
+        if sl.udp:
+            r, _, _ = select.select([sl.sock], [], [], RECV_WAIT)
+            if not r:
+                return -2, 0, 0, b"", 0
+            try:
+                data, peer = sl.sock.recvfrom(maxlen)
+            except (BlockingIOError, InterruptedError):
+                return -2, 0, 0, b"", 0
+            except OSError:
+                return -1, 0, 0, b"", 0
+            peer_ip = struct.unpack(">I", socket.inet_aton(peer[0]))[0]
+            return len(data), 0, peer_ip, data, peer[1]
         if sl.eof:
-            return 0, 0, 0, b""
+            return 0, 0, 0, b"", 0
         r, _, _ = select.select([sl.sock], [], [], RECV_WAIT)
         if not r:
             self.refresh_state(sl)
             if sl.state == ST_CLOSE_WAIT:
                 sl.eof = True
-                return 0, 0, 0, b""
-            return -2, 0, 0, b""
+                return 0, 0, 0, b"", 0
+            return -2, 0, 0, b"", 0
         try:
             data = sl.sock.recv(maxlen)
         except (BlockingIOError, InterruptedError):
-            return -2, 0, 0, b""
+            return -2, 0, 0, b"", 0
         except OSError:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         if data == b"":
             sl.eof = True
             sl.state = ST_CLOSE_WAIT
-            return 0, 0, 0, b""
-        return len(data), 0, 0, data
+            return 0, 0, 0, b"", 0
+        return len(data), 0, 0, data, 0
 
     def op_state(self, idx):
         sl = self.slots[idx]
@@ -270,15 +307,15 @@ class Host:
         payload = raw[20:] if op in (OP_SEND, OP_RESOLVE) else b""
         extra_port = 0
         if op == OP_OPEN:
-            result, rlen, aux, rpayload = self.op_open(idx)
+            result, rlen, aux, rpayload = self.op_open(idx, arg)
         elif op == OP_CLOSE:
             result, rlen, aux, rpayload = self.op_close(idx)
         elif op == OP_CONNECT:
             result, rlen, aux, rpayload = self.op_connect(idx, addr, port)
         elif op == OP_SEND:
-            result, rlen, aux, rpayload = self.op_send(idx, payload)
+            result, rlen, aux, rpayload = self.op_send(idx, payload, addr, port)
         elif op == OP_RECV:
-            result, rlen, aux, rpayload = self.op_recv(idx, length)
+            result, rlen, aux, rpayload, extra_port = self.op_recv(idx, length)
         elif op == OP_STATE:
             result, rlen, aux, rpayload = self.op_state(idx)
         elif op == OP_RESOLVE:
