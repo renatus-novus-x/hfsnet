@@ -32,6 +32,10 @@ iperf.x サーバーモード（左: ゲスト、右: ホスト側。2倍速再�
 
 ![iperf.x サーバーモード](iperf-server.gif)
 
+sntp.x の実行（左: ゲスト、右: ホスト側。UDP で SNTP サーバーから時刻を取得）:
+
+![sntp.x の実行](sntp-host.gif)
+
 ## 動作条件
 
 - ゲストとホストで**双方向に読み書きできる共有フォルダ**があること
@@ -39,8 +43,9 @@ iperf.x サーバーモード（左: ゲスト、右: ホスト側。2倍速再�
 - ホスト側で `hfsnethost.py` が常駐していること
 - ゲスト側アプリは elf2x68k の libsocket など、inetd.x 互換 API を使うもの
 
-動作確認済みの組み合わせ: XEiJ の HFS 経由で、httpclient.x の HTTP 取得と
-iperf のクライアント／サーバー動作を確認しています。
+動作確認済みの組み合わせ: XEiJ の HFS 経由で、httpclient.x の HTTP 取得、
+iperf のクライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
+確認しています。
 
 ## ダウンロード
 
