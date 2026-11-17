@@ -42,6 +42,17 @@ SNTP server over UDP):
 
 ![sntp.x running](sntp-host.gif)
 
+telnet.x running (left: guest, right: host side; the TCPPACK telnet client
+connecting to a test server, exchanging echoes, and disconnecting):
+
+![telnet.x running](telnet-host.gif)
+
+WebXpressionPlus running (left: guest, right: host side; a web browser
+fetching and displaying a test page, then following a link to a second
+page):
+
+![WebXpressionPlus running](webxpression-host.gif)
+
 ## Requirements
 
 - A shared folder that both the guest and the host can read and write
@@ -56,7 +67,9 @@ client and server modes, and SNTP time fetching with sntp.x (UDP) have
 been verified. Compatibility with the TCPPACK software was also checked
 on all three environments, with nearly identical results (the only
 difference: on WebX68k, telnet.x gets partway through the session after
-connecting).
+connecting). With the current driver, which implements the extended TI
+functions, a full telnet.x session and HTTP browsing with
+WebXpressionPlus have since been verified on XEiJ as well.
 
 ## Download
 
