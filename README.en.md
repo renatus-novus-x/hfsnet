@@ -138,7 +138,9 @@ Numbering follows the function table in Keisoku Giken's tcpipdrv.h
 
 Implemented: get_version / socket / bind / listen / accept / connect /
 read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
-getsockname / getpeername / sockstate / sock_top / gethostbyname
+getsockname / getpeername / sockkick / usesock / recvline / sendline /
+rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
+psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
 
 Any other function returns -1. Limitations:
 
