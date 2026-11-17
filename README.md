@@ -37,6 +37,16 @@ sntp.x の実行（左: ゲスト、右: ホスト側。UDP で SNTP サーバ�
 
 ![sntp.x の実行](sntp-host.gif)
 
+telnet.x の実行（左: ゲスト、右: ホスト側。TCPPACK の telnet クライアントで
+テストサーバーへ接続し、エコーのやり取りをして切断）:
+
+![telnet.x の実行](telnet-host.gif)
+
+WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウザで
+テストページを取得・表示し、リンク先のページへ遷移）:
+
+![WebXpressionPlus の実行](webxpression-host.gif)
+
 ## 動作条件
 
 - ゲストとホストで**双方向に読み書きできる共有フォルダ**があること
@@ -49,7 +59,9 @@ WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 クライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
 確認しています。TCPPACK 系ソフトとの互換性も3環境で検証し、結果は
 ほぼ共通でした（WebX68k では telnet.x が接続後のやり取りの途中まで
-進む点だけが異なります）。
+進む点だけが異なります）。その後、拡張 TI 関数を実装した現行ドライバでは、
+XEiJ で telnet.x のセッション完走と WebXpressionPlus の HTTP 表示も
+確認しています。
 
 ## ダウンロード
 
