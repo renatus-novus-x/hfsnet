@@ -2,7 +2,8 @@
 
 # hfsnet — 共有フォルダ経由の inetd.x 互換ドライバ
 
-ホスト側フォルダをゲストから読み書きできる仕組み（XEiJ の **HFS** など）
+ホスト側フォルダをゲストから読み書きできる仕組み（XEiJ の **HFS**、
+XM6 TypeG の **Windrv**、WebX68k の **HostFS** など）
 だけを使って、Human68k に計測技研 **inetd.x 互換 API**
 （TCP/IP ドライバの呼び出し規約、いわゆる TI エントリ）を提供する実験実装です。
 
@@ -43,9 +44,12 @@ sntp.x の実行（左: ゲスト、右: ホスト側。UDP で SNTP サーバ�
 - ホスト側で `hfsnethost.py` が常駐していること
 - ゲスト側アプリは elf2x68k の libsocket など、inetd.x 互換 API を使うもの
 
-動作確認済みの組み合わせ: XEiJ の HFS 経由で、httpclient.x の HTTP 取得、
-iperf のクライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
-確認しています。
+動作確認済みの環境は3つあります。XEiJ（HFS）、XM6 TypeG（Windrv）、
+WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
+クライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
+確認しています。TCPPACK 系ソフトとの互換性も3環境で検証し、結果は
+ほぼ共通でした（WebX68k では telnet.x が接続後のやり取りの途中まで
+進む点だけが異なります）。
 
 ## ダウンロード
 
