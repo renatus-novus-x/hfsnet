@@ -301,10 +301,29 @@ class Host:
                            rlen, aux) + rpayload
         with open(self.tmp_path, "wb") as f:
             f.write(res)
-        os.replace(self.tmp_path, self.res_path)
+        self.publish_res(res)
         print(f"[{time.strftime('%H:%M:%S')}] seq={seq} "
               f"{OP_NAMES.get(op, op)} sock={idx} -> result={result} "
               f"len={rlen} aux={aux}", flush=True)
+
+    def publish_res(self, res):
+        """応答ファイルを差し替える。
+
+        通常は一時ファイルからの rename で原子的に差し替える。ただし
+        Windows では、ゲスト（エミュレータ）が応答ファイルを開いている
+        間は rename がアクセス拒否で失敗する。ゲストはポーリングで
+        開いては閉じるので、しばらく再試行すれば合間に差し替えられる。
+        それでも駄目なら直接上書きする。ゲスト側はマジック・通し番号・
+        長さで応答を検証するので、書きかけを読んでも取り違えは起きない。
+        """
+        for _ in range(40):
+            try:
+                os.replace(self.tmp_path, self.res_path)
+                return
+            except OSError:
+                time.sleep(0.05)
+        with open(self.res_path, "wb") as f:
+            f.write(res)
 
     def run(self):
         print(f"hfsnethost: watching {self.folder}", flush=True)
