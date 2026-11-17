@@ -24,10 +24,6 @@ inside the driver).
 
 All of these were recorded on XEiJ.
 
-httpclient.x running (guest screen):
-
-![httpclient.x running](httpclient-xeij.gif)
-
 httpclient.x running (left: guest, right: the host-side hfsnethost.py log):
 
 ![httpclient.x with the host-side log](httpclient-host.gif)
