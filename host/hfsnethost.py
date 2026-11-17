@@ -100,7 +100,7 @@ class Host:
         if sl.sock is None or sl.listening:
             return 0
         try:
-            data = sl.sock.recv(65536, socket.MSG_PEEK | socket.MSG_DONTWAIT)
+            data = sl.sock.recv(65536, socket.MSG_PEEK)
             return len(data)
         except (BlockingIOError, InterruptedError):
             return 0
@@ -194,7 +194,7 @@ class Host:
                 return 0, 0, 0, b""
             return -2, 0, 0, b""
         try:
-            data = sl.sock.recv(maxlen, socket.MSG_DONTWAIT)
+            data = sl.sock.recv(maxlen)
         except (BlockingIOError, InterruptedError):
             return -2, 0, 0, b""
         except OSError:
