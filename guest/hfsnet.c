@@ -56,6 +56,11 @@ enum {
 #define OP_ACCEPT   10
 #define OP_SHUTDOWN 11
 
+/* sockmode のモード値 (FCT socket.h) */
+#define SOCK_BINARY     0       /* 生データのまま */
+#define SOCK_ASCII      1       /* EOL 変換あり */
+#define SOCK_QUERY      2       /* 変更せず現在値を返す */
+
 /* 状態コード */
 #define ST_CLOSED       0
 #define ST_LISTEN       1
@@ -123,13 +128,23 @@ static unsigned char namebuf[NSOCK][16];    /* getsockname 用 */
 static unsigned char peerbuf[NSOCK][16];    /* getpeername 用 */
 static unsigned char sock_state[NSOCK];     /* 最後に STATE で得た状態 */
 
+/* 拡張 TI 関数 (37〜52) 用のスロットごとの状態 */
+static const char *sock_errstr[NSOCK];      /* sockerr が返す直近のエラー文字列 */
+/* 文字/行読み (recvchar / recvline) と read_s / recvfrom で共用する
+   入力バッファ。1回の RECV 往復でまとめて取り寄せ、残りは次回に回す */
+static unsigned char cbuf[NSOCK][MAXDATA];
+static int cpos[NSOCK];                     /* 読み出し位置 */
+static int clen[NSOCK];                     /* 有効バイト数 */
+static int ceof[NSOCK];                     /* EOF を観測済みか */
+static unsigned short cpeer_port[NSOCK];    /* バッファ内データの送信元 (UDP) */
+static unsigned long cpeer_addr[NSOCK];
+
 static char path_req[160];
 static char path_res[160];
 
 static unsigned long rpc_seq;
 static unsigned char reqbuf[20 + MAXDATA];
 static unsigned char resbuf[24 + MAXDATA];
-static unsigned char databuf[MAXDATA];
 
 static struct hostent_h hostentbuf;
 static char host_namebuf[128];
@@ -303,7 +318,14 @@ static void init_sock(int idx, int type)
     u->namelen = 16;
     u->peername = (char *)peerbuf[idx];
     u->peernamelen = 16;
+    /* EOL の既定は CRLF (inetd.x / joynetd と同じ)。recvchar が使う */
+    u->eol[0] = '\r';
+    u->eol[1] = '\n';
+    u->eol[2] = '\0';
     sock_state[idx] = ST_CLOSED;
+    sock_errstr[idx] = "";
+    cpos[idx] = clen[idx] = 0;
+    ceof[idx] = 0;
 }
 
 /* STATE を問い合わせて状態キャッシュを更新する。失敗したら -1 */
@@ -386,6 +408,10 @@ static long ti_accept(long *arg)
         if (res.result == 0) {
             struct sockaddr_in_h *sin;
             init_sock(nidx, 1);
+            /* EOL とモードは聞き側ソケットから引き継ぐ (joynetd と同じ) */
+            memcpy(usocks[nidx].eol, usocks[idx].eol, 3);
+            usocks[nidx].flag = usocks[idx].flag;
+            usocks[nidx].flush = usocks[idx].flush;
             sin = (struct sockaddr_in_h *)peerbuf[nidx];
             sin->sin_family = 0;        /* AF_INET (elf2x68k の規約) */
             sin->sin_port = res.port;
@@ -415,15 +441,20 @@ static long ti_connect(long *arg)
     if (idx < 0 || sin == NULL)
         return -1;
     if (rpc(OP_CONNECT, idx, sin->sin_port, 0, sin->sin_addr, 0,
-            NULL, 0, &res, NULL) < 0)
+            NULL, 0, &res, NULL) < 0) {
+        sock_errstr[idx] = "Connection refused";
         return -1;
+    }
     if (res.result == 0) {
         memcpy(peerbuf[idx], sin, 16);
         sock_state[idx] = ST_ESTABLISHED;
+        sock_errstr[idx] = "";
         return 0;
     }
-    if (res.result != 1)
+    if (res.result != 1) {
+        sock_errstr[idx] = "Connection refused";
         return -1;
+    }
     /* 接続中 */
     memcpy(peerbuf[idx], sin, 16);
     sock_state[idx] = ST_SYN_SENT;
@@ -432,43 +463,91 @@ static long ti_connect(long *arg)
     t0 = now100();
     for (;;) {
         if (query_state(idx, &res) == 0) {
-            if (sock_state[idx] == ST_ESTABLISHED)
+            if (sock_state[idx] == ST_ESTABLISHED) {
+                sock_errstr[idx] = "";
                 return 0;
-            if (sock_state[idx] == ST_CLOSED)
+            }
+            if (sock_state[idx] == ST_CLOSED) {
+                sock_errstr[idx] = "Connection refused";
                 return -1;
+            }
         }
-        if (elapsed100(t0, now100()) > 3000)    /* 30秒 */
+        if (elapsed100(t0, now100()) > 3000) {  /* 30秒 */
+            sock_errstr[idx] = "Connection timed out";
             return -1;
+        }
         _dos_change_pr();
     }
 }
 
+/* 入力バッファへの取り寄せ。戻り値:
+ *   1 = cbuf にデータがある, 0 = EOF (ホスト側の失敗も従来方針で EOF 扱い),
+ *  -1 = まだデータが無い (ホストが -2 を返した), -2 = 伝送エラー */
+static int cfill(int idx)
+{
+    struct resinfo res;
+    if (cpos[idx] < clen[idx])
+        return 1;
+    if (ceof[idx])
+        return 0;
+    if (rpc(OP_RECV, idx, 0, 0, 0, MAXDATA, NULL, 0, &res, cbuf[idx]) < 0)
+        return -2;
+    if (res.result > 0) {
+        cpos[idx] = 0;
+        clen[idx] = (int)res.result;
+        cpeer_port[idx] = res.port;
+        cpeer_addr[idx] = res.aux;
+        return 1;
+    }
+    if (res.result == -2)
+        return -1;
+    ceof[idx] = 1;                      /* 0 = EOF、その他の負値も EOF 扱い */
+    return 0;
+}
+
 /* RECV の中核。戻り値: >0 受信バイト数, 0 EOF, -1 今は読めない/エラー
- * info が非 NULL なら、最後に応答した RECV の resinfo をコピーする
+ * info が非 NULL なら、取り寄せたデータの送信元 (port / aux) を返す
  * (UDP の recvfrom が送信元アドレスを取り出すために使う) */
 static long recv_core(int idx, char *buf, long len, struct resinfo *info)
 {
-    struct resinfo res;
-    if (len > MAXDATA)
-        len = MAXDATA;
     for (;;) {
-        if (rpc(OP_RECV, idx, 0, 0, 0, (unsigned long)len,
-                NULL, 0, &res, databuf) < 0)
-            return -1;
-        if (info)
-            *info = res;
-        if (res.result > 0) {
-            memcpy(buf, databuf, res.result);
-            return res.result;
+        int st = cfill(idx);
+        if (st == 1) {
+            int avail = clen[idx] - cpos[idx];
+            long n = len;
+            if (n > avail)
+                n = avail;
+            memcpy(buf, cbuf[idx] + cpos[idx], (size_t)n);
+            cpos[idx] += (int)n;
+            if (info) {
+                info->result = n;
+                info->port = cpeer_port[idx];
+                info->aux = cpeer_addr[idx];
+            }
+            return n;
         }
-        if (res.result == 0)
+        if (st == 0)
             return 0;                   /* EOF */
-        if (res.result == -2) {         /* まだデータが無い */
-            if (usocks[idx].noblock)
-                return -1;
-            continue;                   /* ホスト側で 300ms 待ってから返る */
-        }
-        return 0;                       /* それ以外の失敗は EOF として扱う */
+        if (st == -2)
+            return -1;                  /* 伝送エラー */
+        /* st == -1: まだデータが無い */
+        if (usocks[idx].noblock)
+            return -1;
+        /* ブロッキング時は再試行 (ホスト側で 300ms 待ってから返る) */
+    }
+}
+
+/* 1バイト受信 (rrecvchar / recvchar の中核)。戻り値: 0〜255, -1 = 読めない */
+static int recv_one(int idx)
+{
+    for (;;) {
+        int st = cfill(idx);
+        if (st == 1)
+            return cbuf[idx][cpos[idx]++];
+        if (st == 0 || st == -2)
+            return -1;
+        if (usocks[idx].noblock)
+            return -1;
     }
 }
 
@@ -567,10 +646,18 @@ static long ti_close_s(long fd)         /* 引数は配列でなく fd そのも
     int idx = sock_index(fd);
     if (idx < 0)
         return -1;
+    /* FCT の規約: close_s は参照カウントを下げ、0 になったときだけ
+       実際に閉じる (libnetwork マニュアル)。usesock と対になる */
+    if (usocks[idx].refcnt > 1) {
+        usocks[idx].refcnt--;
+        return 0;
+    }
     rpc(OP_CLOSE, idx, 0, 0, 0, 0, NULL, 0, &res, NULL);    /* 結果は不問 */
     usocks[idx].type = 0;
     usocks[idx].refcnt = 0;
     sock_state[idx] = ST_CLOSED;
+    cpos[idx] = clen[idx] = 0;
+    ceof[idx] = 0;
     return 0;
 }
 
@@ -595,8 +682,17 @@ static long ti_socklen(long *arg)
         return -1;
     if (query_state(idx, &res) < 0)
         return -1;
-    if (arg[1] == 0)
+    if (arg[1] == 0) {
+        /* TCP で相手が切断し受信データも残っていない場合は -1 を返す。
+           socklen の正の値だけを見て受信を判断するアプリ (FCT telnet は
+           切断後も socklen を回し続ける) が切断を検出できるようにする
+           ための意味づけで、本家ドライバの挙動からの推定である。 */
+        if (usocks[idx].type == 1 && res.len == 0 &&
+            (sock_state[idx] == ST_CLOSE_WAIT ||
+             sock_state[idx] == ST_CLOSED))
+            return -1;
         return (long)res.len;           /* 受信可能バイト数 */
+    }
     if (arg[1] == 1)
         return (long)res.aux;           /* 送信可能バイト数 */
     return -1;
@@ -621,6 +717,234 @@ static long ti_sockstate(long fd)       /* 引数は配列でなく fd そのも
         return 0;                       /* NULL: libsocket がエラーにする */
     query_state(idx, &res);             /* 失敗しても前回の状態を返す */
     return (long)state_names[sock_state[idx]];
+}
+
+/* ------------------------------------------------------------------ */
+/* 拡張 TI 関数 (37〜52 の未実装分)                                     */
+/*                                                                     */
+/* 引数の渡し方は FCT libnetwork のソース (TCPPACKB) で確定した:       */
+/*   配列渡し: recvline / sendline / seteol / sockmode / setflush /    */
+/*             ntoa_sock (arg[0] = fd, 以降は関数ごと)                 */
+/*   fd を A0 に直接: sockkick / usesock / rrecvchar / recvchar /      */
+/*             usflush / sockerr (close_s / sockstate と同じ流儀)      */
+/*   ポインタを A0 に直接: psocket (sockaddr へのポインタ)             */
+/* 意味は libnetwork マニュアルと joynetd の実装に従った。             */
+/* ------------------------------------------------------------------ */
+
+/* sockkick (37): stream の強制再送が本来の意味だが、再送はホスト側の
+   TCP スタックの仕事なので、ここでは成功を返すだけ (joynetd も同じ) */
+static long ti_sockkick(long fd)
+{
+    if (sock_index(fd) < 0)
+        return -1;
+    return 0;
+}
+
+/* usesock (39): 参照カウントを1つ上げる */
+static long ti_usesock(long fd)
+{
+    int idx = sock_index(fd);
+    if (idx < 0)
+        return -1;
+    usocks[idx].refcnt++;
+    return 0;
+}
+
+/* rrecvchar (42): EOL 変換なしの1バイト受信。引数は fd そのもの */
+static long ti_rrecvchar(long fd)
+{
+    int idx = sock_index(fd);
+    if (idx < 0)
+        return -1;
+    return recv_one(idx);
+}
+
+/* recvchar (43): 1バイト受信。ASCII モードでは EOL シーケンスを
+   '\n' に変換する (joynetd の変換規則どおり)。引数は fd そのもの */
+static long ti_recvchar(long fd)
+{
+    int idx = sock_index(fd);
+    int c;
+    if (idx < 0)
+        return -1;
+    if (usocks[idx].flag == SOCK_BINARY)
+        return recv_one(idx);
+    c = recv_one(idx);
+    if (c < 0)
+        return -1;
+    if (c != (unsigned char)usocks[idx].eol[0])
+        return c;
+    if (usocks[idx].eol[1] == '\0')
+        return '\n';
+    c = recv_one(idx);
+    if (c < 0)
+        return -1;
+    if (c != (unsigned char)usocks[idx].eol[1])
+        return c;               /* EOL の1文字目は捨て、2文字目を返す */
+    return '\n';
+}
+
+/* recvline (40): '\n' まで (含む) または len バイトまで読む。
+   終端の NUL は付けない。戻り値は読んだバイト数 */
+static long ti_recvline(long *arg)
+{
+    char *p = (char *)arg[1];
+    long len = arg[2], n = 0;
+    if (sock_index(arg[0]) < 0 || p == NULL || len <= 0)
+        return -1;
+    while (n < len) {
+        long c = ti_recvchar(arg[0]);
+        if (c < 0)
+            return -1;
+        p[n++] = (char)c;
+        if (c == '\n')
+            break;
+    }
+    return n;
+}
+
+/* sendline (41): ASCII モードでは '\n' を EOL シーケンスに展開して送る。
+   戻り値は元のバッファのバイト数。FCT libnetwork にラッパは無いため
+   意味は KA9Q 由来の流儀からの推定 */
+static long ti_sendline(long *arg)
+{
+    int idx = sock_index(arg[0]);
+    const char *buf = (const char *)arg[1];
+    long len = arg[2], i, start;
+    if (idx < 0 || buf == NULL || len < 0)
+        return -1;
+    if (usocks[idx].flag == SOCK_BINARY || len == 0)
+        return send_core(idx, buf, len, 0, 0);
+    start = 0;
+    for (i = 0; i < len; i++) {
+        if (buf[i] == '\n') {
+            char eolbuf[2];
+            int en = 0;
+            if (i > start &&
+                send_core(idx, buf + start, i - start, 0, 0) < 0)
+                return -1;
+            if (usocks[idx].eol[0])
+                eolbuf[en++] = usocks[idx].eol[0];
+            if (usocks[idx].eol[1])
+                eolbuf[en++] = usocks[idx].eol[1];
+            if (en == 0)
+                eolbuf[en++] = '\n';
+            if (send_core(idx, eolbuf, en, 0, 0) < 0)
+                return -1;
+            start = i + 1;
+        }
+    }
+    if (len > start && send_core(idx, buf + start, len - start, 0, 0) < 0)
+        return -1;
+    return len;
+}
+
+/* usflush (44): 送信バッファのフラッシュ。hfsnet の送信は即時なので
+   成功を返すだけ。引数は fd そのもの、戻り値は使われない */
+static long ti_usflush(long fd)
+{
+    if (sock_index(fd) < 0)
+        return -1;
+    return 0;
+}
+
+/* seteol (45): EOL シーケンス (最大2文字) を設定する */
+static long ti_seteol(long *arg)
+{
+    int idx = sock_index(arg[0]);
+    const char *seq = (const char *)arg[1];
+    if (idx < 0 || seq == NULL)
+        return -1;
+    usocks[idx].eol[0] = seq[0];
+    usocks[idx].eol[1] = seq[0] ? seq[1] : '\0';
+    usocks[idx].eol[2] = '\0';
+    return 0;
+}
+
+/* sockmode (46): モードを設定し、以前のモードを返す。
+   SOCK_QUERY では変更しない */
+static long ti_sockmode(long *arg)
+{
+    int idx = sock_index(arg[0]);
+    int old;
+    if (idx < 0)
+        return -1;
+    old = usocks[idx].flag;
+    if (arg[1] == SOCK_BINARY || arg[1] == SOCK_ASCII)
+        usocks[idx].flag = (int)arg[1];
+    return old;
+}
+
+/* setflush (47): フラッシュ文字の設定。hfsnet は出力バッファを持たない
+   ので、値を保持するだけ */
+static long ti_setflush(long *arg)
+{
+    int idx = sock_index(arg[0]);
+    if (idx < 0)
+        return -1;
+    usocks[idx].flush = (int)arg[1];
+    return 0;
+}
+
+/* sockaddr を "a.b.c.d:port" に整形する (psocket / ntoa_sock 共用)。
+   sin_addr / sin_port はネットワークバイトオーダのまま保持されており、
+   ビッグエンディアンの 68k では値がそのまま各要素になる */
+static void fmt_addr(char *out, const void *sa)
+{
+    const struct sockaddr_in_h *sin = (const struct sockaddr_in_h *)sa;
+    unsigned long a = sin->sin_addr;
+    sprintf(out, "%lu.%lu.%lu.%lu:%u",
+            (a >> 24) & 0xff, (a >> 16) & 0xff, (a >> 8) & 0xff, a & 0xff,
+            sin->sin_port);
+}
+
+static char psockbuf[64];
+
+/* psocket (48): sockaddr へのポインタを A0 で受け取り、整形した文字列
+   へのポインタを返す (KA9Q 由来の意味づけ) */
+static long ti_psocket(const void *p)
+{
+    if (p == NULL)
+        return (long)"";
+    fmt_addr(psockbuf, p);
+    return (long)psockbuf;
+}
+
+/* sockerr (49): そのソケットで最後に起きたエラーを表す文字列を返す。
+   引数は fd そのもの。文字列の文言は近似 (接続失敗は "Connection
+   refused"、時間切れは "Connection timed out") */
+static long ti_sockerr(long fd)
+{
+    int idx = sock_index(fd);
+    if (idx < 0)
+        return 0;                       /* NULL (joynetd と同じ) */
+    return (long)sock_errstr[idx];
+}
+
+/* ntoa_sock (52): ソケットの状態を netstat 風の1行に整形して
+   呼び出し側のバッファに書き、バッファへのポインタを返す。
+   mode (名前解決の抑止) は無視し、常に数値で整形する */
+static long ti_ntoa_sock(long *arg)
+{
+    struct resinfo res;
+    char local[64], foreign[64];
+    char *buf = (char *)arg[2];
+    long rq = 0, sq = 0;
+    int idx = sock_index(arg[0]);
+    if (idx < 0 || buf == NULL)
+        return 0;
+    if (arg[1] != 0)                    /* AF_INET のみ */
+        return 0;
+    if (query_state(idx, &res) == 0) {
+        rq = (long)res.len;
+        sq = (long)res.aux;
+    }
+    fmt_addr(local, namebuf[idx]);
+    fmt_addr(foreign, peerbuf[idx]);
+    sprintf(buf, "%-5s %6ld %6ld %-22s %-22s %s",
+            usocks[idx].type == 2 ? "udp" : "tcp", rq, sq, local, foreign,
+            usocks[idx].type == 2 ? "" : state_names[sock_state[idx]]);
+    return (long)buf;
 }
 
 static long ti_gethostbyname(const char *name)
@@ -649,9 +973,35 @@ static long ti_gethostbyname(const char *name)
 /* ------------------------------------------------------------------ */
 /* TI エントリ (head.S の jsr_entry から呼ばれる)                       */
 /*   呼ばれ方: D0 = 関数番号, A0 = 引数 (配列へのポインタ。ただし       */
-/*   close_s / sockstate は fd の値そのもの、gethostbyname は           */
-/*   名前へのポインタ)。結果は D0 で返す。                             */
+/*   close_s / sockstate / sockkick / usesock / rrecvchar / recvchar / */
+/*   usflush / sockerr は fd の値そのもの、psocket は sockaddr への     */
+/*   ポインタ、gethostbyname は名前へのポインタ)。結果は D0 で返す。   */
 /* ------------------------------------------------------------------ */
+#ifdef TRACE
+/* 切り分け用: 全 TI 呼び出しを共有フォルダの HFSTRACE.BIN に
+   「関数番号 A0の値」の行で追記する (通常ビルドには含めない) */
+static void trace_call(int cmd, long a0)
+{
+    char path[sizeof(path_res)];
+    char line[40];
+    int h, n;
+    strcpy(path, path_res);
+    n = (int)strlen(path);
+    while (n > 0 && path[n - 1] != '\\' && path[n - 1] != '/')
+        n--;
+    strcpy(path + n, "HFSTRACE.BIN");
+    h = _dos_open(path, 1);
+    if (h < 0)
+        h = _dos_create(path, 0x20);
+    if (h < 0)
+        return;
+    _dos_seek(h, 0, 2);
+    n = snprintf(line, sizeof(line), "%d %ld\r\n", cmd, a0);
+    _dos_write(h, line, n);
+    _dos_close(h);
+}
+#endif
+
 int do_command(void)
 {
     int cmd;
@@ -662,6 +1012,10 @@ int do_command(void)
         "move.l %%a0,%1\n"
         : "=r" (cmd), "=r" (arg) : : "d0", "a0"
     );
+
+#ifdef TRACE
+    trace_call(cmd, (long)arg);
+#endif
 
     switch (cmd) {
     case -1:                    /* trap 番号の問い合わせには「無し」で答える */
@@ -696,10 +1050,36 @@ int do_command(void)
         return ti_getsockname(arg, 1);
     case TI_shutdown:
         return ti_shutdown(arg);
+    case TI_sockkick:
+        return ti_sockkick((long)arg);
+    case TI_usesock:
+        return ti_usesock((long)arg);
+    case TI_recvline:
+        return ti_recvline(arg);
+    case TI_sendline:
+        return ti_sendline(arg);
+    case TI_rrecvchar:
+        return ti_rrecvchar((long)arg);
+    case TI_recvchar:
+        return ti_recvchar((long)arg);
+    case TI_usflush:
+        return ti_usflush((long)arg);
+    case TI_seteol:
+        return ti_seteol(arg);
+    case TI_sockmode:
+        return ti_sockmode(arg);
+    case TI_setflush:
+        return ti_setflush(arg);
+    case TI_psocket:
+        return ti_psocket(arg);
+    case TI_sockerr:
+        return ti_sockerr((long)arg);
     case TI_sockstate:
         return ti_sockstate((long)arg);
     case TI_sock_top:
         return (long)usocks;
+    case TI_ntoa_sock:
+        return ti_ntoa_sock(arg);
     case TI_gethostbyname:
         return ti_gethostbyname((const char *)arg);
     default:
