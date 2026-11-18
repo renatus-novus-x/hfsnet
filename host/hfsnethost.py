@@ -148,19 +148,23 @@ class Host:
     def op_connect(self, idx, addr, port):
         sl = self.slots[idx]
         if sl.sock is None:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         try:
             err = sl.sock.connect_ex((ipstr(addr), port))
         except OSError:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
+        # ローカル側エンドポイント (getsockname 用) を aux/port で返す。
+        # ゲストが FTP の PORT などを組み立てるのに必要
+        la = sl.sock.getsockname()
+        la_ip = struct.unpack(">I", socket.inet_aton(la[0]))[0]
         if err == 0:
             sl.state = ST_ESTABLISHED
-            return 0, 0, 0, b""
+            return 0, 0, la_ip, b"", la[1]
         if err in (36, 115, 10035, 11):     # EINPROGRESS / EWOULDBLOCK / EAGAIN
             sl.state = ST_SYN_SENT
-            return 1, 0, 0, b""
+            return 1, 0, la_ip, b"", la[1]
         sl.state = ST_CLOSED
-        return -1, 0, 0, b""
+        return -1, 0, 0, b"", 0
 
     def op_send(self, idx, payload, addr=0, port=0):
         sl = self.slots[idx]
@@ -259,12 +263,14 @@ class Host:
     def op_bind(self, idx, addr, port):
         sl = self.slots[idx]
         if sl.sock is None:
-            return -1, 0, 0, b""
+            return -1, 0, 0, b"", 0
         try:
             sl.sock.bind((ipstr(addr), port))
         except OSError:
-            return -1, 0, 0, b""
-        return 0, 0, 0, b""
+            return -1, 0, 0, b"", 0
+        # port=0 で割り当てられた実際のポートを RES の port で返す
+        # (ゲストの getsockname が返すため)
+        return 0, 0, 0, b"", sl.sock.getsockname()[1]
 
     def op_listen(self, idx, backlog):
         sl = self.slots[idx]
@@ -311,7 +317,7 @@ class Host:
         elif op == OP_CLOSE:
             result, rlen, aux, rpayload = self.op_close(idx)
         elif op == OP_CONNECT:
-            result, rlen, aux, rpayload = self.op_connect(idx, addr, port)
+            result, rlen, aux, rpayload, extra_port = self.op_connect(idx, addr, port)
         elif op == OP_SEND:
             result, rlen, aux, rpayload = self.op_send(idx, payload, addr, port)
         elif op == OP_RECV:
@@ -321,7 +327,7 @@ class Host:
         elif op == OP_RESOLVE:
             result, rlen, aux, rpayload = self.op_resolve(payload)
         elif op == OP_BIND:
-            result, rlen, aux, rpayload = self.op_bind(idx, addr, port)
+            result, rlen, aux, rpayload, extra_port = self.op_bind(idx, addr, port)
         elif op == OP_LISTEN:
             result, rlen, aux, rpayload = self.op_listen(idx, arg)
         elif op == OP_ACCEPT:

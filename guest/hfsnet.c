@@ -364,6 +364,19 @@ static long ti_socket(long *arg)
     return SOCKBASE + idx;
 }
 
+/* CONNECT の応答に含まれるローカル側エンドポイントを namebuf へ
+   反映する (getsockname が実際のアドレス/ポートを返すため。
+   FTP クライアントが PORT の組み立てに使う) */
+static void set_namebuf_local(int idx, const struct resinfo *res)
+{
+    struct sockaddr_in_h *me = (struct sockaddr_in_h *)namebuf[idx];
+    if (res->aux == 0 && res->port == 0)
+        return;
+    me->sin_family = 0;                 /* AF_INET (elf2x68k の規約) */
+    me->sin_port = res->port;
+    me->sin_addr = res->aux;
+}
+
 static long ti_bind(long *arg)
 {
     struct resinfo res;
@@ -375,6 +388,8 @@ static long ti_bind(long *arg)
             NULL, 0, &res, NULL) < 0 || res.result < 0)
         return -1;
     memcpy(namebuf[idx], sin, 16);
+    if (res.port)       /* port=0 で割り当てられた実際のポートを反映 */
+        ((struct sockaddr_in_h *)namebuf[idx])->sin_port = res.port;
     return 0;
 }
 
@@ -447,6 +462,7 @@ static long ti_connect(long *arg)
     }
     if (res.result == 0) {
         memcpy(peerbuf[idx], sin, 16);
+        set_namebuf_local(idx, &res);
         sock_state[idx] = ST_ESTABLISHED;
         sock_errstr[idx] = "";
         return 0;
@@ -457,6 +473,7 @@ static long ti_connect(long *arg)
     }
     /* 接続中 */
     memcpy(peerbuf[idx], sin, 16);
+    set_namebuf_local(idx, &res);
     sock_state[idx] = ST_SYN_SENT;
     if (usocks[idx].noblock)
         return -1;              /* libsocket が状態を見て EINPROGRESS にする */
