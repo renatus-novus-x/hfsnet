@@ -1,0 +1,25 @@
+name: GUI host (macOS)
+
+on:
+  push:
+    paths:
+      - "gui/**"
+      - "test/**"
+      - ".github/workflows/gui-macos.yml"
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build GUI (macOS)
+        run: |
+          cmake -S gui -B gui/build-ci -DCMAKE_BUILD_TYPE=Release
+          cmake --build gui/build-ci -j3
+      - name: Build headless engine
+        run: |
+          cmake -S gui -B gui/build-ci-headless -DCMAKE_BUILD_TYPE=Release -DHFSNET_BUILD_GUI=OFF
+          cmake --build gui/build-ci-headless -j3
+      - name: Run tests against the C++ engine
+        run: gui/ci/run_tests.sh gui/build-ci-headless/hfsnet-host
