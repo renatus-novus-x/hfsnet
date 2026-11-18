@@ -65,6 +65,9 @@ WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
 telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
 やり取り、切断、プロンプトへの復帰まで）を確認しています。
+telnet.x beta3 についても同様に確認しています。nc.x（netcat-x68k）
+についても、3環境すべてで TCP（クライアント／待ち受け）と UDP の
+送受信を確認しています。
 WebXpressionPlus についても、3環境すべてで平文 HTTP のページ取得・
 表示（リンク先への遷移を含む）を確認しています。
 
@@ -150,7 +153,10 @@ getsockname / getpeername / sockkick / usesock / recvline / sendline /
 rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
 psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
 
-それ以外は -1 を返します。制限事項:
+ポインタを返す名前引き関数（gethostbyaddr / getnetbyname /
+getnetbyaddr / getservbyname / getservbyport / getprotobyname /
+getprotobynumber）は、引けない場合に -1 ではなく NULL を返します。
+それ以外の未実装関数は -1 を返します。制限事項:
 
 - 対応するソケット種別は TCP（SOCK_STREAM）と UDP（SOCK_DGRAM）です。
   RAW は socket() が -1 を返します
@@ -161,7 +167,8 @@ psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
 - sendto / recvfrom のアドレス指定は UDP では有効です
   （TCP では接続済みソケットとして扱います）
 - MSG_PEEK などの flags は無視します
-- getsockname は bind したアドレス（未 bind なら 0.0.0.0:0）を返します
+- getsockname は bind / connect で確定した実際のローカル側アドレスと
+ポートを返します（どちらもしていない場合は 0.0.0.0:0）
 
 ドライバの置き場所（メモリ常駐の入口）は、実在の inetd.x 互換ドライバ
 （yunkya2 氏の joynetd など）と同じ作法です。プログラムイメージの先頭に
@@ -193,6 +200,18 @@ make        # hfsnet.x ができる
    `hfsnet.x C:\HFSNET`
 4. あとは libsocket を使うアプリ（elf2x68k サンプルの httpclient.x など）が
    そのまま通信できます
+
+ドライバは再起動しなくても常駐解除できます。フォルダの代わりに
+`/r` を指定します（`-r` でも同じです）:
+
+`hfsnet.x /r`
+
+- 解除できると `hfsnet: removed.` と表示されます
+- 常駐していない場合は `hfsnet: not installed.` と表示されます（異常ではありません）
+- 使用中のソケットがある場合は
+  `hfsnet: cannot remove: N socket(s) in use.` と表示して解除を拒否します
+- ネットワークアプリを実行している最中は解除しないでください
+  （アプリ側がドライバの入口を覚えている場合があるため）
 
 ## 既知の限界
 
