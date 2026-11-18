@@ -67,10 +67,13 @@ peer disconnects):
 - Guest applications that use an inetd.x-compatible API, such as elf2x68k's
   libsocket
 
-Verified environments: three. On each of XEiJ (HFS), XM6 TypeG (Windrv),
+Verified environments: four. On each of XEiJ (HFS), XM6 TypeG (Windrv),
 and WebX68k (HostFS), HTTP fetching with httpclient.x, iperf in both
 client and server modes, and SNTP time fetching with sntp.x (UDP) have
-been verified. With the current driver, which implements the extended
+been verified. On real hardware, an X68000Z XVI "X EMULATER" +
+x68kzremotedrv (a remote drive service using a Raspberry Pi Pico W),
+HTTP fetching with httpclient.x (including name resolution) and SNTP
+time fetching with sntp.x have also been verified. With the current driver, which implements the extended
 TI functions, a full telnet.x session (connect, echo exchange,
 disconnect, and return to the prompt) has also been verified on all
 three environments. telnet.x beta3 has likewise been verified in the
