@@ -15,6 +15,11 @@
 #include <x68k/dos.h>
 #include <x68k/iocs.h>
 
+/* リリースバージョン (組み込み時メッセージで表示する。
+   TI_get_version が返す 0x00010001 は inetd.x インターフェースの
+   版数なので、こことは別に固定のままにすること) */
+#define HFSNET_VERSION "0.3.0"
+
 /* ------------------------------------------------------------------ */
 /* TI 関数番号 (計測技研 tcpipdrv.h の _TI_ 列挙順に一致させる)        */
 /* ------------------------------------------------------------------ */
@@ -1165,7 +1170,8 @@ int main(int argc, char *argv[])
     _dos_close(h);
     _dos_delete(probe);
 
-    printf("hfsnet: installed (folder = %s)\r\n", dir);
+    printf("hfsnet: installed (version %s, folder = %s)\r\n",
+           HFSNET_VERSION, dir);
     fflush(stdout);
 
     _dos_keeppr(_HEND - (int)&tcpip_magic, 0);
