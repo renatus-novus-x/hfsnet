@@ -20,6 +20,12 @@
    版数なので、こことは別に固定のままにすること) */
 #define HFSNET_VERSION "0.3.0"
 
+/* 常駐コピーの識別マーカー。常駐解除のときに、"TCP/IP" 署名を持つ
+   常駐ブロックの中から、この文字列を含むものを自ドライバとみなす。
+   ブロック内をスキャンして探すので配置アドレスには依存せず、
+   版の違う常駐コピーでも識別できる */
+static const char resident_marker[] = "hfsnet-resident-driver";
+
 /* ------------------------------------------------------------------ */
 /* TI 関数番号 (計測技研 tcpipdrv.h の _TI_ 列挙順に一致させる)        */
 /* ------------------------------------------------------------------ */
@@ -1131,6 +1137,88 @@ extern int _HEND;                       /* crt0 が設定するヒープ終端 *
 typedef long (*ti_func_t)(long, void *);
 ti_func_t __sock_search_ti_entry(void); /* libsocket の既存ドライバ検索 */
 
+/* ------------------------------------------------------------------ */
+/* 常駐解除                                                            */
+/*                                                                     */
+/* アプリ側 (libsocket の search_ti_entry) は、自分の PSP からメモリ   */
+/* 管理ブロック (MEP) の prev_mp チェーンをさかのぼり、常駐フラグの    */
+/* 立ったブロックでイメージ先頭に "TCP/IP" 署名があるものをドライバ   */
+/* として見つける。したがって解除とは、そのブロックを DOS の MFREE    */
+/* で解放してチェーンから外すことに等しい (joynetd の常駐解除と同じ   */
+/* 方式)。常駐ブロックの PSP は MEP の直後 (MEP+0x10) にある。         */
+/* ------------------------------------------------------------------ */
+
+/* 常駐している hfsnet の MEP を探す。他の TCP/IP ドライバ (joynetd 等)
+   と区別するため、署名に加えてマーカー文字列を含むブロックだけを
+   自ドライバとみなす。見つからなければ NULL を返す */
+static struct dos_mep *find_resident(void)
+{
+    struct dos_psp *psp = _dos_getpdb();
+    struct dos_mep *mep = &((struct dos_mep *)psp)[-1];
+    size_t mlen = strlen(resident_marker);
+
+    while ((mep = mep->prev_mp) != NULL) {
+        char *img, *end, *p;
+        if (((long)mep->parent_mp & 0xff000000L) != 0xff000000L)
+            continue;                   /* 常駐ブロックでない */
+        img = (char *)mep + 0x100;      /* PSP の後ろがイメージ先頭 */
+        if (memcmp(img, "TCP/IP", 6) != 0)
+            continue;
+        end = (char *)mep->block_end;
+        if (end <= img || end > img + 0x100000L)
+            end = img + 0x100000L;      /* 念のためのスキャン上限 */
+        for (p = img; p + mlen <= end; p++) {
+            if (memcmp(p, resident_marker, mlen) == 0)
+                return mep;
+        }
+    }
+    return NULL;
+}
+
+/* 常駐コピーの usocks を読み、使用中ソケットの数を数える。
+   常駐コピーとは同じバイナリなので、イメージ先頭からの相対位置は
+   一致する。スロットが確保済み (type != 0) か、参照カウントが残って
+   いれば使用中とみなす。RPC は使わないので、ホスト側の相方が
+   動いていなくても判定できる */
+static int count_busy_sockets(const char *img)
+{
+    const volatile struct usock *ru = (const volatile struct usock *)
+        (img + ((const char *)usocks - (const char *)&tcpip_magic));
+    int i, busy = 0;
+
+    for (i = 0; i < NSOCK; i++) {
+        if (ru[i].type != 0 || ru[i].refcnt != 0)
+            busy++;
+    }
+    return busy;
+}
+
+static int remove_driver(void)
+{
+    struct dos_mep *mep;
+    int busy;
+
+    (void)_dos_super(0);        /* joynetd の解除処理と同じく特権モードで */
+    mep = find_resident();
+    if (mep == NULL) {
+        printf("hfsnet: not installed.\r\n");
+        return 0;
+    }
+    busy = count_busy_sockets((const char *)mep + 0x100);
+    if (busy > 0) {
+        printf("hfsnet: cannot remove: %d socket(s) in use.\r\n", busy);
+        return 1;
+    }
+    /* 解放するアドレスはブロックの PSP (joynetd が _dos_getpdb() の
+       戻り値を控えて MFREE に渡すのと同じ位置) */
+    if (_dos_mfree((char *)mep + sizeof(struct dos_mep)) < 0) {
+        printf("hfsnet: remove failed.\r\n");
+        return 1;
+    }
+    printf("hfsnet: removed.\r\n");
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     const char *dir;
@@ -1138,9 +1226,14 @@ int main(int argc, char *argv[])
     size_t dl;
     int h;
 
+    if (argc >= 2 &&
+        (strcmp(argv[1], "/r") == 0 || strcmp(argv[1], "-r") == 0))
+        return remove_driver();
+
     if (argc < 2) {
         printf("usage: hfsnet.x <folder>\r\n");
         printf("  e.g. hfsnet.x C:\\HFSNET\r\n");
+        printf("  hfsnet.x /r  : remove the resident driver\r\n");
         return 1;
     }
     if (__sock_search_ti_entry() != NULL) {
