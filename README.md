@@ -42,11 +42,6 @@ telnet.x の実行（左: ゲスト、右: ホスト側。TCPPACK の telnet ク
 
 ![telnet.x の実行](telnet-host.gif)
 
-WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウザで
-テストページを取得・表示し、リンク先のページへ遷移）:
-
-![WebXpressionPlus の実行](webxpression-host.gif)
-
 nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコーサーバーへ
 接続して送受信し、相手の切断で終了してプロンプトへ復帰）:
 
@@ -62,11 +57,9 @@ nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコー�
 動作確認済みの環境は3つあります。XEiJ（HFS）、XM6 TypeG（Windrv）、
 WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 クライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
-確認しています。TCPPACK 系ソフトとの互換性も3環境で検証し、結果は
-ほぼ共通でした（WebX68k では telnet.x が接続後のやり取りの途中まで
-進む点だけが異なります）。その後、拡張 TI 関数を実装した現行ドライバでは、
-XEiJ で telnet.x のセッション完走と WebXpressionPlus の HTTP 表示も
-確認しています。
+確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
+telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
+やり取り、切断、プロンプトへの復帰まで）を確認しています。
 
 ## ダウンロード
 
