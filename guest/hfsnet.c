@@ -103,7 +103,7 @@ static const char * const state_names[] = {
 struct usock {
     int refcnt;
     char noblock;
-    char type;                  /* 0 = 未使用, 1 = TCP, 2 = UDP */
+    char type;                  /* 0 = 未使用, 1 = TCP, 2 = UDP, 3 = RAW */
     int rdysock;
     void *p;
     char *name;
@@ -135,6 +135,22 @@ struct hostent_h {
 };
 
 static struct usock usocks[NSOCK];
+
+/* TI_get_MIB が返す MIB 一覧。実データは持たないが、ping.x など
+   戻り値をポインタとして参照するアプリが落ちないよう、joynetd と
+   同じ形のダミー表 (IP / ICMP / UDP / TCP の4グループ) を返す */
+struct mib_entry;
+struct mib_array {
+    struct mib_entry *mib;
+    int mib_size;
+    char *name;
+};
+static struct mib_array mib_array[4] = {
+    { NULL, 0, "IP" },
+    { NULL, 0, "ICMP" },
+    { NULL, 0, "UDP" },
+    { NULL, 0, "TCP" },
+};
 static unsigned char namebuf[NSOCK][16];    /* getsockname 用 */
 static unsigned char peerbuf[NSOCK][16];    /* getpeername 用 */
 static unsigned char sock_state[NSOCK];     /* 最後に STATE で得た状態 */
@@ -324,7 +340,7 @@ static void init_sock(int idx, int type)
     /* sin_family は 0 (= AF_INET, elf2x68k の規約) なので、
        上の memset で 0 埋めされたままでよい */
     u->refcnt = 1;
-    u->type = (char)type;       /* 1 = TCP, 2 = UDP */
+    u->type = (char)type;       /* 1 = TCP, 2 = UDP, 3 = RAW */
     u->name = (char *)namebuf[idx];
     u->namelen = 16;
     u->peername = (char *)peerbuf[idx];
@@ -362,16 +378,17 @@ static long ti_socket(long *arg)
        するので、アプリからは (0, 0, 0) や (0, 1, 0) が届く */
     if (arg[0] != 0)            /* PF_INET のみ */
         return -1;
-    if (arg[1] != 0 && arg[1] != 1)     /* STREAM / DGRAM のみ (RAW は不可) */
-        return -1;
+    if (arg[1] != 0 && arg[1] != 1 && arg[1] != 2)
+        return -1;              /* STREAM / DGRAM / RAW のみ */
     idx = alloc_sock();
     if (idx < 0)
         return -1;
-    /* ソケット種別は要求ヘッダの arg 欄でホストへ伝える */
-    if (rpc(OP_OPEN, idx, 0, (unsigned short)arg[1], 0, 0, NULL, 0,
-            &res, NULL) < 0 || res.result < 0)
+    /* ソケット種別は要求ヘッダの arg 欄、プロトコル番号 (RAW のとき
+       IPPROTO_ICMP = 1 など) は port 欄でホストへ伝える */
+    if (rpc(OP_OPEN, idx, (unsigned short)arg[2], (unsigned short)arg[1],
+            0, 0, NULL, 0, &res, NULL) < 0 || res.result < 0)
         return -1;
-    init_sock(idx, arg[1] == 1 ? 2 : 1);
+    init_sock(idx, arg[1] == 1 ? 2 : arg[1] == 2 ? 3 : 1);
     return SOCKBASE + idx;
 }
 
@@ -596,8 +613,8 @@ static long ti_recvfrom(long *arg)
         return -1;
     r = recv_core(idx, (char *)arg[1], arg[2], &res);
     if (r >= 0 && arg[4]) {
-        if (usocks[idx].type == 2 && r > 0) {
-            /* UDP: 送信元は RECV 応答の aux (IP) と port 欄に載っている */
+        if ((usocks[idx].type == 2 || usocks[idx].type == 3) && r > 0) {
+            /* UDP / RAW: 送信元は RECV 応答の aux (IP) と port 欄に載っている */
             struct sockaddr_in_h sin;
             memset(&sin, 0, sizeof(sin));
             sin.sin_family = 0;         /* AF_INET (elf2x68k の規約) */
@@ -1011,7 +1028,7 @@ static long ti_gethostbyname(const char *name)
 static void trace_call(int cmd, long a0)
 {
     char path[sizeof(path_res)];
-    char line[40];
+    char line[128];
     int h, n;
     strcpy(path, path_res);
     n = (int)strlen(path);
@@ -1024,7 +1041,17 @@ static void trace_call(int cmd, long a0)
     if (h < 0)
         return;
     _dos_seek(h, 0, 2);
-    n = snprintf(line, sizeof(line), "%d %ld\r\n", cmd, a0);
+    if (cmd == TI_socket || cmd == TI_bind || cmd == TI_connect ||
+        cmd == TI_sendto || cmd == TI_recvfrom || cmd == TI_read_s ||
+        cmd == TI_write_s) {
+        /* ポインタ引数の関数だけは中身の先頭も記録する (調査用) */
+        long *a = (long *)a0;
+        n = snprintf(line, sizeof(line),
+                     "%d %ld %ld %ld %ld %ld %ld\r\n", cmd, a0,
+                     a[0], a[1], a[2], a[3], a[4]);
+    } else {
+        n = snprintf(line, sizeof(line), "%d %ld\r\n", cmd, a0);
+    }
     _dos_write(h, line, n);
     _dos_close(h);
 }
@@ -1050,6 +1077,8 @@ int do_command(void)
         return -1;
     case TI_get_version:
         return 0x00010001;
+    case TI_get_MIB:
+        return (long)mib_array;
     case TI_socket:
         return ti_socket(arg);
     case TI_bind:
