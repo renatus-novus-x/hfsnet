@@ -1,0 +1,6 @@
+# ビルド成果物
+build/
+build-*/
+# ローカル検証リグ (エミュレータ・Wine prefix・システムファイル等)
+test-local/
+*.log
