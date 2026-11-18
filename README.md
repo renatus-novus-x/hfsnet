@@ -42,6 +42,11 @@ telnet.x の実行（左: ゲスト、右: ホスト側。TCPPACK の telnet ク
 
 ![telnet.x の実行](telnet-host.gif)
 
+WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウザで
+テストページを取得・表示し、リンク先のページへ遷移）:
+
+![WebXpressionPlus の実行](webxpression-host.gif)
+
 nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコーサーバーへ
 接続して送受信し、相手の切断で終了してプロンプトへ復帰）:
 
@@ -60,6 +65,8 @@ WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
 telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
 やり取り、切断、プロンプトへの復帰まで）を確認しています。
+WebXpressionPlus についても、3環境すべてで平文 HTTP のページ取得・
+表示（リンク先への遷移を含む）を確認しています。
 
 ## ダウンロード
 
