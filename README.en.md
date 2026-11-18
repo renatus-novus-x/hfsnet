@@ -47,12 +47,6 @@ connecting to a test server, exchanging echoes, and disconnecting):
 
 ![telnet.x running](telnet-host.gif)
 
-WebXpressionPlus running (left: guest, right: host side; a web browser
-fetching and displaying a test page, then following a link to a second
-page):
-
-![WebXpressionPlus running](webxpression-host.gif)
-
 nc.x running (left: guest, right: host side; netcat-x68k connecting to an
 echo server, exchanging data, then exiting back to the prompt when the
 peer disconnects):
@@ -70,12 +64,10 @@ peer disconnects):
 Verified environments: three. On each of XEiJ (HFS), XM6 TypeG (Windrv),
 and WebX68k (HostFS), HTTP fetching with httpclient.x, iperf in both
 client and server modes, and SNTP time fetching with sntp.x (UDP) have
-been verified. Compatibility with the TCPPACK software was also checked
-on all three environments, with nearly identical results (the only
-difference: on WebX68k, telnet.x gets partway through the session after
-connecting). With the current driver, which implements the extended TI
-functions, a full telnet.x session and HTTP browsing with
-WebXpressionPlus have since been verified on XEiJ as well.
+been verified. With the current driver, which implements the extended
+TI functions, a full telnet.x session (connect, echo exchange,
+disconnect, and return to the prompt) has also been verified on all
+three environments.
 
 ## Download
 
