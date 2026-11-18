@@ -1082,6 +1082,19 @@ int do_command(void)
         return ti_ntoa_sock(arg);
     case TI_gethostbyname:
         return ti_gethostbyname((const char *)arg);
+    case TI_gethostbyaddr:
+    case TI_getnetbyname:
+    case TI_getnetbyaddr:
+    case TI_getservbyname:
+    case TI_getservbyport:
+    case TI_getprotobyname:
+    case TI_getprotobynumber:
+        /* ポインタを返す名前引き関数は、引けない場合に -1 ではなく
+           NULL を返すのが ABI の約束 (joynetd の同関数も NULL を返す)。
+           -1 を返すと FCT libnetwork の _copyhost が
+           (struct hostent *)-1 を参照して SIGBUS になる
+           (ftp.x の open がこの経路で落ちていた) */
+        return 0;
     default:
         return -1;
     }
