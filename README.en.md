@@ -47,6 +47,12 @@ connecting to a test server, exchanging echoes, and disconnecting):
 
 ![telnet.x running](telnet-host.gif)
 
+WebXpressionPlus running (left: guest, right: host side; a web browser
+fetching and displaying a test page, then following a link to a second
+page):
+
+![WebXpressionPlus running](webxpression-host.gif)
+
 nc.x running (left: guest, right: host side; netcat-x68k connecting to an
 echo server, exchanging data, then exiting back to the prompt when the
 peer disconnects):
@@ -67,7 +73,9 @@ client and server modes, and SNTP time fetching with sntp.x (UDP) have
 been verified. With the current driver, which implements the extended
 TI functions, a full telnet.x session (connect, echo exchange,
 disconnect, and return to the prompt) has also been verified on all
-three environments.
+three environments. WebXpressionPlus fetching and displaying plain
+HTTP pages (including following a link to a second page) has likewise
+been verified on all three environments.
 
 ## Download
 
