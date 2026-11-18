@@ -73,7 +73,10 @@ client and server modes, and SNTP time fetching with sntp.x (UDP) have
 been verified. With the current driver, which implements the extended
 TI functions, a full telnet.x session (connect, echo exchange,
 disconnect, and return to the prompt) has also been verified on all
-three environments. WebXpressionPlus fetching and displaying plain
+three environments. telnet.x beta3 has likewise been verified in the
+same way. nc.x (netcat-x68k) has likewise been verified on all three
+environments, over both TCP (client and listening) and UDP.
+WebXpressionPlus fetching and displaying plain
 HTTP pages (including following a link to a second page) has likewise
 been verified on all three environments.
 
@@ -161,7 +164,10 @@ getsockname / getpeername / sockkick / usesock / recvline / sendline /
 rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
 psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
 
-Any other function returns -1. Limitations:
+The pointer-returning lookup functions (gethostbyaddr /
+getnetbyname / getnetbyaddr / getservbyname / getservbyport /
+getprotobyname / getprotobynumber) return NULL, not -1, when the
+lookup fails. Any other unimplemented function returns -1. Limitations:
 
 - Socket types supported are TCP (SOCK_STREAM) and UDP (SOCK_DGRAM);
   socket() returns -1 for RAW
@@ -172,7 +178,8 @@ Any other function returns -1. Limitations:
 - The address arguments of sendto / recvfrom are honored for UDP
   (for TCP the socket is treated as connected)
 - Flags such as MSG_PEEK are ignored
-- getsockname returns the bound address (0.0.0.0:0 if not bound)
+- getsockname returns the actual local address and port established
+by bind / connect (0.0.0.0:0 if neither has happened)
 
 The driver's resident layout follows the same convention as real
 inetd.x-compatible drivers (such as yunkya2's joynetd): the program image
@@ -206,6 +213,19 @@ The host side needs no build.
    `hfsnet.x C:\HFSNET`
 4. Applications that use libsocket (such as the elf2x68k sample
    httpclient.x) can then communicate as-is
+
+The driver can also be removed without rebooting. Give `/r` instead
+of the folder (`-r` works too):
+
+`hfsnet.x /r`
+
+- On success it prints `hfsnet: removed.`
+- If the driver is not resident it prints `hfsnet: not installed.`
+  (this is not an error)
+- If any socket is still in use it refuses, printing
+  `hfsnet: cannot remove: N socket(s) in use.`
+- Do not remove the driver while a network application is running
+  (an application may have cached the driver's entry point)
 
 ## Known limitations
 
