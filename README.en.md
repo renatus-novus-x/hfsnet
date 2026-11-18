@@ -53,6 +53,12 @@ page):
 
 ![WebXpressionPlus running](webxpression-host.gif)
 
+nc.x running (left: guest, right: host side; netcat-x68k connecting to an
+echo server, exchanging data, then exiting back to the prompt when the
+peer disconnects):
+
+![nc.x running](nc-host.gif)
+
 ## Requirements
 
 - A shared folder that both the guest and the host can read and write
