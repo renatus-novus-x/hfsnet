@@ -47,6 +47,11 @@ WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウ�
 
 ![WebXpressionPlus の実行](webxpression-host.gif)
 
+nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコーサーバーへ
+接続して送受信し、相手の切断で終了してプロンプトへ復帰）:
+
+![nc.x の実行](nc-host.gif)
+
 ## 動作条件
 
 - ゲストとホストで**双方向に読み書きできる共有フォルダ**があること
