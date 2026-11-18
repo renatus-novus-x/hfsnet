@@ -59,12 +59,13 @@ nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコー�
 - ホスト側で `hfsnethost.py` が常駐していること
 - ゲスト側アプリは elf2x68k の libsocket など、inetd.x 互換 API を使うもの
 
-動作確認済みの環境は4つあります。XEiJ（HFS）、XM6 TypeG（Windrv）、
+動作確認済みの環境は5つあります。XEiJ（HFS）、XM6 TypeG（Windrv）、
 WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 クライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
-確認しています。実機の X68000Z XVI "X EMULATER" + x68kzremotedrv
-（Raspberry Pi Pico W によるリモートドライブ）でも、httpclient.x の
-HTTP 取得（名前解決を含む）と sntp.x の SNTP 時刻取得を確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
+確認しています。実機でも、X68000Z および X68000Z XVI "X EMULATER" に
+x68kzremotedrv（Raspberry Pi Pico W によるリモートドライブ）を
+組み合わせた構成で、httpclient.x の HTTP 取得（名前解決を含む）と
+sntp.x の SNTP 時刻取得を確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
 telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
 やり取り、切断、プロンプトへの復帰まで）を確認しています。
 telnet.x beta3 についても同様に確認しています。nc.x（netcat-x68k）
