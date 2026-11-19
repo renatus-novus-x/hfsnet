@@ -74,7 +74,7 @@ been verified. On real hardware, both an X68000Z and an X68000Z XVI
 "X EMULATER" combined with x68kzremotedrv (a remote drive service
 using a Raspberry Pi Pico W), HTTP fetching with httpclient.x
 (including name resolution) and SNTP time fetching with sntp.x have
-also been verified. With the current driver, which implements the extended
+also been verified. On the X68000Z XVI "X EMULATER", HTTP fetching with httpclient.x and SNTP time fetching with sntp.x have also been verified over the machine's built-in Windows file sharing feature. With the current driver, which implements the extended
 TI functions, a full telnet.x session (connect, echo exchange,
 disconnect, and return to the prompt) has also been verified on all
 three environments. telnet.x beta3 has likewise been verified in the
