@@ -240,3 +240,9 @@ of the folder (`-r` works too):
 - Resident memory: the driver keeps its whole image resident
 - Loading the driver twice is detected via the existing TCP/IP driver
   search and stopped
+- ftp.x (TCPPACK) can connect, log in, list directories, and quit, but
+  a get whose destination is a filesystem-driver-type drive such as
+  HFS fails: before saving, ftp.x issues _FATCHK (a DOS call that
+  walks the FAT cluster chain), which cannot pass on this kind of
+  drive. On XEiJ and XM6 TypeG, choosing a real drive such as a
+  floppy as the destination lets the get succeed
