@@ -65,7 +65,7 @@ WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
 確認しています。実機でも、X68000Z および X68000Z XVI "X EMULATER" に
 x68kzremotedrv（Raspberry Pi Pico W によるリモートドライブ）を
 組み合わせた構成で、httpclient.x の HTTP 取得（名前解決を含む）と
-sntp.x の SNTP 時刻取得を確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
+sntp.x の SNTP 時刻取得を確認しています。また、X68000Z XVI "X EMULATER" の純正の Windows とのファイル共有機能でも、httpclient.x の HTTP 取得と sntp.x の SNTP 時刻取得を確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
 telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
 やり取り、切断、プロンプトへの復帰まで）を確認しています。
 telnet.x beta3 についても同様に確認しています。nc.x（netcat-x68k）
