@@ -293,15 +293,39 @@ bool icmp_echo(uint32_t dest_ip_be, const uint8_t *data, int len,
                int timeout_ms, int *rtt_ms)
 {
     static std::atomic<uint16_t> seq_counter{0};
+    const bool dbg = std::getenv("HFSNET_DEBUG_RAW") != nullptr;
     int fd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
-    if (fd < 0)
+    if (fd < 0) {
+        if (dbg) { std::printf("[icmp] socket failed errno=%d\n", errno); std::fflush(stdout); }
         return false;
+    }
     uint16_t seq = ++seq_counter;
+
+    // ping ソケットでは sin_port がエコー識別子 (Identifier) の役割を
+    // 持ち、応答の振り分けはこの値で行われる。識別子で bind してから
+    // connect し、getsockname でカーネルが実際に割り当てた識別子を
+    // 読み戻して、その値をパケット自体にも入れる (カーネルが識別子を
+    // 付け替える実装では、チェックサムが送信前の値とずれて応答側で
+    // 捨てられる可能性があるため、最終形で組み立て直す)。
+    // 2026-11-19 の macOS CI では bind+connect だけでは応答が届かず、
+    // 本対応と受信側の IP ヘッダ許容を入れた。
+    sockaddr_in local = make_addr(0, 0x4846);
+    int brc = ::bind(fd, (sockaddr *)&local, sizeof(local));   // 失敗しても続行
+    sockaddr_in a = make_addr(dest_ip_be, 0);
+    bool connected = ::connect(fd, (sockaddr *)&a, sizeof(a)) == 0;
+    uint16_t eff_id = 0x4846;
+    if (connected) {
+        sockaddr_in la;
+        socklen_t ll = sizeof(la);
+        if (::getsockname(fd, (sockaddr *)&la, &ll) == 0 &&
+            ntohs(la.sin_port) != 0)
+            eff_id = ntohs(la.sin_port);
+    }
     std::vector<uint8_t> pkt(8 + len, 0);
     pkt[0] = 8;                          // エコー要求
     pkt[1] = 0;
-    pkt[4] = 0x48;                       // 識別子 'HF' (カーネルが付け替える)
-    pkt[5] = 0x46;
+    pkt[4] = (uint8_t)(eff_id >> 8);
+    pkt[5] = (uint8_t)eff_id;
     pkt[6] = (uint8_t)(seq >> 8);
     pkt[7] = (uint8_t)seq;
     if (len > 0)
@@ -310,31 +334,29 @@ bool icmp_echo(uint32_t dest_ip_be, const uint8_t *data, int len,
     pkt[2] = (uint8_t)(c >> 8);
     pkt[3] = (uint8_t)c;
 
-    // ping ソケットでは sin_port がエコー識別子 (Identifier) の役割を
-    // 持ち、応答の振り分けはこの値で行われる。bind せずに sendto すると
-    // 特に macOS で識別子が割り当てられず、応答が届いても自ソケットに
-    // 配送されないことがある (2026-11-19 の macOS CI で実測: 送信は
-    // 成功するが応答が永久に来ない)。そこで識別子で bind してから
-    // connect + send を本線にする。
-    sockaddr_in local = make_addr(0, 0x4846);
-    ::bind(fd, (sockaddr *)&local, sizeof(local));   // 失敗しても続行
-    sockaddr_in a = make_addr(dest_ip_be, 0);
     uint64_t t0 = now_ms();
     int n;
-    if (::connect(fd, (sockaddr *)&a, sizeof(a)) == 0) {
+    if (connected) {
         n = (int)::send(fd, pkt.data(), pkt.size(), 0);
     } else {
         n = (int)::sendto(fd, pkt.data(), pkt.size(), 0,
                           (sockaddr *)&a, sizeof(a));
+    }
+    if (dbg) {
+        std::printf("[icmp] bind=%d connected=%d eff_id=%04x seq=%u send=%d errno=%d\n",
+                    brc, connected ? 1 : 0, eff_id, seq, n, n < 0 ? errno : 0);
+        std::fflush(stdout);
     }
     if (n < 0) {
         ::close(fd);
         return false;
     }
     uint8_t buf[2048];
+    int seen = 0;
     for (;;) {
         uint64_t elapsed = now_ms() - t0;
         if (elapsed > (uint64_t)timeout_ms) {
+            if (dbg) { std::printf("[icmp] timeout, received %d packet(s)\n", seen); std::fflush(stdout); }
             ::close(fd);
             return false;
         }
@@ -346,18 +368,33 @@ bool icmp_echo(uint32_t dest_ip_be, const uint8_t *data, int len,
         tv.tv_sec = remain / 1000;
         tv.tv_usec = (remain % 1000) * 1000;
         if (::select(fd + 1, &fds, nullptr, nullptr, &tv) <= 0) {
+            if (dbg) { std::printf("[icmp] timeout, received %d packet(s)\n", seen); std::fflush(stdout); }
             ::close(fd);
             return false;
         }
         int rn = (int)::recv(fd, buf, sizeof(buf), 0);
-        if (rn >= 8 && buf[0] == 0) {    // エコー応答
-            uint16_t rseq = (uint16_t)((buf[6] << 8) | buf[7]);
-            if (rseq == seq) {
-                if (rtt_ms)
-                    *rtt_ms = (int)(now_ms() - t0);
-                ::close(fd);
-                return true;
-            }
+        if (rn < 8)
+            continue;
+        seen++;
+        // OS によっては IP ヘッダ付きで届くことがあるため許容する
+        int off = 0;
+        if ((buf[0] >> 4) == 4 && rn >= 20)
+            off = (buf[0] & 0x0F) * 4;
+        if (rn < off + 8)
+            continue;
+        uint8_t type = buf[off];
+        uint16_t rid = (uint16_t)((buf[off + 4] << 8) | buf[off + 5]);
+        uint16_t rseq = (uint16_t)((buf[off + 6] << 8) | buf[off + 7]);
+        if (dbg && seen <= 3) {
+            std::printf("[icmp] recv len=%d off=%d type=%u id=%04x seq=%u\n",
+                        rn, off, type, rid, rseq);
+            std::fflush(stdout);
+        }
+        if (type == 0 && (rseq == seq || rid == eff_id)) {   // エコー応答
+            if (rtt_ms)
+                *rtt_ms = (int)(now_ms() - t0);
+            ::close(fd);
+            return true;
         }
     }
 }

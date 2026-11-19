@@ -94,9 +94,11 @@ def main():
         return 2
     hostbin = os.path.abspath(sys.argv[1])
     folder = tempfile.mkdtemp(prefix="hfsnet-raw-test-")
+    env = dict(os.environ)
+    env["HFSNET_DEBUG_RAW"] = "1"
     proc = subprocess.Popen([hostbin, "--headless", folder],
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True)
+                            text=True, env=env)
     try:
         time.sleep(0.5)
         g = SimGuest(folder)
