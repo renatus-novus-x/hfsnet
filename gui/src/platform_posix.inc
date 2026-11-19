@@ -310,15 +310,22 @@ bool icmp_echo(uint32_t dest_ip_be, const uint8_t *data, int len,
     pkt[2] = (uint8_t)(c >> 8);
     pkt[3] = (uint8_t)c;
 
+    // ping ソケットでは sin_port がエコー識別子 (Identifier) の役割を
+    // 持ち、応答の振り分けはこの値で行われる。bind せずに sendto すると
+    // 特に macOS で識別子が割り当てられず、応答が届いても自ソケットに
+    // 配送されないことがある (2026-11-19 の macOS CI で実測: 送信は
+    // 成功するが応答が永久に来ない)。そこで識別子で bind してから
+    // connect + send を本線にする。
+    sockaddr_in local = make_addr(0, 0x4846);
+    ::bind(fd, (sockaddr *)&local, sizeof(local));   // 失敗しても続行
     sockaddr_in a = make_addr(dest_ip_be, 0);
     uint64_t t0 = now_ms();
-    int n = (int)::sendto(fd, pkt.data(), pkt.size(), 0,
+    int n;
+    if (::connect(fd, (sockaddr *)&a, sizeof(a)) == 0) {
+        n = (int)::send(fd, pkt.data(), pkt.size(), 0);
+    } else {
+        n = (int)::sendto(fd, pkt.data(), pkt.size(), 0,
                           (sockaddr *)&a, sizeof(a));
-    if (n < 0 && (errno == EPERM || errno == EACCES)) {
-        // 制限の強いサンドボックスでは素の sendto が塞がれることが
-        // あるため、connect してから send する形にフォールバックする
-        if (::connect(fd, (sockaddr *)&a, sizeof(a)) == 0)
-            n = (int)::send(fd, pkt.data(), pkt.size(), 0);
     }
     if (n < 0) {
         ::close(fd);
