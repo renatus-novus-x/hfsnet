@@ -114,9 +114,14 @@ class Host:
 
     # ---------------- 各操作 ----------------
     def op_open(self, idx, arg=0):
-        # arg はソケット種別 (elf2x68k の規約: 0 = SOCK_STREAM, 1 = SOCK_DGRAM)
+        # arg はソケット種別 (elf2x68k の規約: 0 = SOCK_STREAM, 1 = SOCK_DGRAM,
+        # 2 = SOCK_RAW)。RAW (ICMP) は C++ 版ホストのみ対応するため、ここでは
+        # 明示的に拒否する (黙って TCP に化けると ping.x の失敗の仕方が
+        # 分かりにくくなる)。
         sl = self.slots[idx]
         self.close_slot(sl)
+        if arg == 2:
+            return -1, 0, 0, b""
         if arg == 1:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sl.udp = True
