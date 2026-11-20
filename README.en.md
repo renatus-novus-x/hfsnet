@@ -83,6 +83,9 @@ environments, over both TCP (client and listening) and UDP.
 WebXpressionPlus fetching and displaying plain
 HTTP pages (including following a link to a second page) has likewise
 been verified on all three environments.
+A throughput report for iperf measured on real hardware
+(X68000Z XVI) is available in
+[compat-check/IPERF-REPORT.en.md](compat-check/IPERF-REPORT.en.md).
 
 ## Download
 
