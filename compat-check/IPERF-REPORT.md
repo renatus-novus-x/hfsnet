@@ -1,4 +1,4 @@
-# hfsnet 実機 iperf スループット測定報告
+# hfsnet X68000Z XVI 上での iperf スループット測定報告
 
 [English](IPERF-REPORT.en.md)
 
