@@ -244,5 +244,6 @@ of the folder (`-r` works too):
   a get whose destination is a filesystem-driver-type drive such as
   HFS fails: before saving, ftp.x issues _FATCHK (a DOS call that
   walks the FAT cluster chain), which cannot pass on this kind of
-  drive. On XEiJ and XM6 TypeG, choosing a real drive such as a
-  floppy or a hard disk as the destination lets the get succeed
+  drive. On XEiJ, XM6 TypeG, and WebX68k, choosing a real drive
+  such as a floppy or a hard disk as the destination lets the get
+  succeed
