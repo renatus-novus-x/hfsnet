@@ -1,4 +1,4 @@
-# hfsnet iperf Throughput Measurements on Real Hardware
+# hfsnet iperf Throughput Measurements on the X68000Z XVI
 
 [日本語](IPERF-REPORT.md)
 
