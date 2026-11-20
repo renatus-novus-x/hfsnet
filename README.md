@@ -73,6 +73,8 @@ telnet.x beta3 についても同様に確認しています。nc.x（netcat-x68
 送受信を確認しています。
 WebXpressionPlus についても、3環境すべてで平文 HTTP のページ取得・
 表示（リンク先への遷移を含む）を確認しています。
+実機（X68000Z XVI）での iperf スループット実測レポートは
+[compat-check/IPERF-REPORT.md](compat-check/IPERF-REPORT.md) にあります。
 
 ## ダウンロード
 
