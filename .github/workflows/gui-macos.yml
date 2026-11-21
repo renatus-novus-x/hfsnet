@@ -22,6 +22,15 @@ jobs:
         with:
           name: hfsnet-host-macos
           path: gui/build-ci/hfsnet-host
+      - name: Build GUI (macOS, Intel)
+        run: |
+          cmake -S gui -B gui/build-ci-intel -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+          cmake --build gui/build-ci-intel -j3
+      - name: Upload GUI binary (Intel)
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfsnet-host-macos-intel
+          path: gui/build-ci-intel/hfsnet-host
       - name: Build headless engine
         run: |
           cmake -S gui -B gui/build-ci-headless -DCMAKE_BUILD_TYPE=Release -DHFSNET_BUILD_GUI=OFF
