@@ -17,6 +17,11 @@ fi
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
+# WORK は生成する Python スクリプト内にもパスとして埋め込まれるため、
+# BIN と同様に Windows 形式へ変換しておく。
+if command -v cygpath >/dev/null 2>&1; then
+    WORK=$(cygpath -m "$WORK")
+fi
 
 cat > "$WORK/host_wrapper.py" <<EOF
 import os, sys
