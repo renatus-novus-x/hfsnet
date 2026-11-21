@@ -25,6 +25,8 @@ jobs:
         run: |
           cmake -S gui -B gui/build-ci-headless -DCMAKE_BUILD_TYPE=Release -DHFSNET_BUILD_GUI=OFF
           cmake --build gui/build-ci-headless -j3
+      - name: Allow unprivileged ICMP ping sockets
+        run: sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
       - name: Run tests against the C++ engine
         run: gui/ci/run_tests.sh gui/build-ci-headless/hfsnet-host
       - name: Run tests against the Python host
