@@ -1,0 +1,29 @@
+name: GUI host (Windows)
+
+on:
+  push:
+    paths:
+      - "gui/**"
+      - "test/**"
+      - ".github/workflows/gui-windows.yml"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Build GUI (Windows)
+        run: |
+          cmake -S gui -B gui/build-ci -DCMAKE_BUILD_TYPE=Release
+          cmake --build gui/build-ci --config Release -j3
+      - name: Build headless engine
+        run: |
+          cmake -S gui -B gui/build-ci-headless -DCMAKE_BUILD_TYPE=Release -DHFSNET_BUILD_GUI=OFF
+          cmake --build gui/build-ci-headless --config Release -j3
+      - name: Run tests against the C++ engine
+        shell: bash
+        run: gui/ci/run_tests.sh gui/build-ci-headless/Release/hfsnet-host.exe
