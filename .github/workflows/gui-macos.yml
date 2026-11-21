@@ -7,7 +7,6 @@ on:
       - "test/**"
       - ".github/workflows/gui-macos.yml"
   workflow_dispatch:
-
 jobs:
   macos:
     runs-on: macos-latest
@@ -17,6 +16,11 @@ jobs:
         run: |
           cmake -S gui -B gui/build-ci -DCMAKE_BUILD_TYPE=Release
           cmake --build gui/build-ci -j3
+      - name: Upload GUI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfsnet-host-macos
+          path: gui/build-ci/hfsnet-host
       - name: Build headless engine
         run: |
           cmake -S gui -B gui/build-ci-headless -DCMAKE_BUILD_TYPE=Release -DHFSNET_BUILD_GUI=OFF
