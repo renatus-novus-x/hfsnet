@@ -2,6 +2,10 @@
 
 # hfsnet — an inetd.x-compatible driver over a shared folder
 
+[![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
+[![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
+[![GUI host (Windows)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml)
+
 hfsnet is an experimental implementation that gives Human68k a Keisoku Giken
 **inetd.x-compatible API** (the TCP/IP driver calling convention, the so-called
 TI entry) using nothing but a folder that the guest can read and write from

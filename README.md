@@ -2,6 +2,10 @@
 
 # hfsnet — 共有フォルダ経由の inetd.x 互換ドライバ
 
+[![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
+[![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
+[![GUI host (Windows)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml)
+
 ホスト側フォルダをゲストから読み書きできる仕組み（XEiJ の **HFS**、
 XM6 TypeG の **Windrv**、WebX68k の **HostFS** など）
 だけを使って、Human68k に計測技研 **inetd.x 互換 API**
