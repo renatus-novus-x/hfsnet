@@ -9,6 +9,11 @@
 # のエンドツーエンド (gui/ci/raw_test.py) を実行する。
 set -e
 BIN=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+# Windows (Git Bash) ではネイティブ Python が MSYS 形式のパスを解釈できない
+# ため、cygpath があれば Windows 形式 (スラッシュ区切り) に変換する。
+if command -v cygpath >/dev/null 2>&1; then
+    BIN=$(cygpath -m "$BIN")
+fi
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
