@@ -1,8 +1,8 @@
 [English](README.en.md) | [日本語](README.md)
 
-# <img src="assets/icons/hfsnet_header.png" width="48" align="middle" alt="hfsnet アイコン"> hfsnet - 共有フォルダ経由の inetd.x 互換ドライバ
+# <img src="assets/icons/hfsnet_header.png" width="48" align="middle" alt="hfsnet アイコン"> hfsnet - HFS 経由の inetd.x 互換ドライバ
 
-Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォルダ経由）
+Human68k 向け inetd.x 互換 TCP/IP ドライバ（HFS (Host File Systems) 経由）
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
@@ -11,7 +11,7 @@ Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォ�
 ## これは何か
 
 hfsnet は、X68000 / Human68k に TCP/IP 通信を持ち込むためのドライバです。
-共有フォルダ機能（XEiJ の **HFS** 等）
+ホストファイルシステム機能（XEiJ の **HFS**、WebX68k の **HostFS** 等）
 だけを使って、
 計測技研 **inetd.x 互換 API**（TCP/IP ドライバの呼び出し規約、いわゆる
 TI エントリ）を提供します。XEiJ と WebX68k に関しては、追加

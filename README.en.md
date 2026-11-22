@@ -1,8 +1,8 @@
 [English](README.en.md) | [日本語](README.md)
 
-# <img src="assets/icons/hfsnet_header.png" width="48" align="middle" alt="hfsnet icon"> hfsnet - an inetd.x-compatible driver over a shared folder
+# <img src="assets/icons/hfsnet_header.png" width="48" align="middle" alt="hfsnet icon"> hfsnet - an inetd.x-compatible driver over HFS
 
-inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
+inetd.x-compatible TCP/IP driver for Human68k over HFS (Host File Systems)
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
@@ -11,7 +11,7 @@ inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
 ## What is this?
 
 hfsnet is a driver that brings TCP/IP networking to the X68000 /
-Human68k. Using only the shared-folder feature (such as XEiJ's **HFS**),
+Human68k. Using only the host file system feature (such as XEiJ's **HFS** or WebX68k's **HostFS**),
 it provides a Keisoku Giken **inetd.x-compatible
 API** (the TCP/IP driver calling convention, the so-called TI entry).
 For XEiJ and WebX68k, there is currently no other way to connect to
