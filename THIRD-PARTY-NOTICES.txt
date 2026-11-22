@@ -1,0 +1,50 @@
+Third-party notices for hfsnet
+==============================
+
+The hfsnet GUI host (hfsnet-host) is built with the following
+third-party components. Their license texts are reproduced in the
+licenses/ folder of this distribution.
+
+----------------------------------------------------------------
+Dear ImGui
+  Copyright (c) 2014-2024 Omar Cornut
+  License: MIT License
+  Text: licenses/imgui.txt
+  Used for: the GUI framework of hfsnet-host (all platforms).
+  Dear ImGui includes stb_truetype (by Sean Barrett), which is
+  public domain / MIT dual-licensed; no notice is required.
+
+GLFW
+  Copyright (c) 2002-2006 Marcus Geelnard
+  Copyright (c) 2006-2019 Camilla Löwy
+  License: zlib License
+  Text: licenses/glfw.txt
+  Used for: window creation and input handling of hfsnet-host.
+
+GLEW (The OpenGL Extension Wrangler Library)
+  Copyright (C) 2002-2007, Milan Ikits
+  Copyright (C) 2002-2007, Marcelo E. Magallon
+  License: BSD-style license
+  Text: licenses/glew.txt
+  Used for: OpenGL extension loading of hfsnet-host.
+
+nativefiledialog-extended
+  License: zlib License
+  Text: licenses/nativefiledialog-extended.txt
+  Used for: the folder picker dialog of hfsnet-host.
+
+IPAex Gothic font (IPAexゴシック)
+  Copyright (c) Information-technology Promotion Agency, Japan (IPA)
+  License: IPA Font License Agreement v1.0
+  Text: licenses/IPA_Font_License_Agreement_v1.0.txt
+  Used in: the Linux distribution only. The unmodified font file
+  (fonts/ipaexg.ttf) is bundled so that Japanese text renders on
+  systems without a Japanese font installed. In accordance with
+  Article 3, Paragraph 2 of the license, the font program name is
+  unchanged, the font is not modified, and a copy of the license
+  agreement accompanies the font (also placed next to the font in
+  the Linux package).
+
+----------------------------------------------------------------
+The guest driver (hfsnet.x) and the Python host (hfsnethost.py)
+contain no third-party code.
