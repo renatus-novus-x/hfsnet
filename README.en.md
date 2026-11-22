@@ -44,35 +44,35 @@ All of these were recorded with XEiJ and the GUI host.
 
 | ping.x running (left: guest, right: host side; pinging www.google.com and receiving replies) |
 | :--- |
-| <img src="media/ping-host.gif" width="1248" height="549" alt="ping.x running"> |
+| <a href="media/ping-host.gif"><img src="media/ping-host.gif" width="880" height="387" alt="ping.x running"></a> |
 
 | httpclient.x running (left: guest, right: the GUI host) |
 | :--- |
-| <img src="media/httpclient-host.gif" width="1248" height="702" alt="httpclient.x with the host side"> |
+| <a href="media/httpclient-host.gif"><img src="media/httpclient-host.gif" width="880" height="495" alt="httpclient.x with the host side"></a> |
 
 | iperf.x in client mode (left: guest, right: host side) |
 | :--- |
-| <img src="media/iperf-client.gif" width="1248" height="702" alt="iperf.x in client mode"> |
+| <a href="media/iperf-client.gif"><img src="media/iperf-client.gif" width="880" height="495" alt="iperf.x in client mode"></a> |
 
 | iperf.x in server mode (left: guest, right: host side; played at 2x speed) |
 | :--- |
-| <img src="media/iperf-server.gif" width="1248" height="702" alt="iperf.x in server mode"> |
+| <a href="media/iperf-server.gif"><img src="media/iperf-server.gif" width="880" height="495" alt="iperf.x in server mode"></a> |
 
 | sntp.x running (left: guest, right: host side; fetching the time from an SNTP server over UDP) |
 | :--- |
-| <img src="media/sntp-host.gif" width="1248" height="702" alt="sntp.x running"> |
+| <a href="media/sntp-host.gif"><img src="media/sntp-host.gif" width="880" height="495" alt="sntp.x running"></a> |
 
 | telnet.x running (left: guest, right: host side; the TCPPACK telnet client connecting to a test server, exchanging echoes, and disconnecting) |
 | :--- |
-| <img src="media/telnet-host.gif" width="1248" height="702" alt="telnet.x running"> |
+| <a href="media/telnet-host.gif"><img src="media/telnet-host.gif" width="880" height="495" alt="telnet.x running"></a> |
 
 | WebXpressionPlus running (left: guest, right: host side; a web browser fetching and displaying a test page, then following a link to a second page) |
 | :--- |
-| <img src="media/webxpression-host.gif" width="1248" height="702" alt="WebXpressionPlus running"> |
+| <a href="media/webxpression-host.gif"><img src="media/webxpression-host.gif" width="880" height="495" alt="WebXpressionPlus running"></a> |
 
 | nc.x running (left: guest, right: host side; netcat-x68k connecting to an echo server, exchanging data, then exiting back to the prompt when the peer disconnects) |
 | :--- |
-| <img src="media/nc-host.gif" width="1248" height="702" alt="nc.x running"> |
+| <a href="media/nc-host.gif"><img src="media/nc-host.gif" width="880" height="495" alt="nc.x running"></a> |
 
 ## Getting started
 

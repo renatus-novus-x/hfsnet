@@ -41,35 +41,35 @@ XM6 TypeG の **Windrv** や X68000Z のファイル共有機能など、双方�
 
 | ping.x の実行（左: ゲスト、右: ホスト側。www.google.com へ ping を打ち、 応答が返る様子） |
 | :--- |
-| <img src="media/ping-host.gif" width="1248" height="549" alt="ping.x の実行"> |
+| <a href="media/ping-host.gif"><img src="media/ping-host.gif" width="880" height="387" alt="ping.x の実行"></a> |
 
 | httpclient.x の実行（左: ゲスト、右: ホスト側 GUI 版ホスト） |
 | :--- |
-| <img src="media/httpclient-host.gif" width="1248" height="702" alt="httpclient.x とホスト側"> |
+| <a href="media/httpclient-host.gif"><img src="media/httpclient-host.gif" width="880" height="495" alt="httpclient.x とホスト側"></a> |
 
 | iperf.x クライアントモード（左: ゲスト、右: ホスト側） |
 | :--- |
-| <img src="media/iperf-client.gif" width="1248" height="702" alt="iperf.x クライアントモード"> |
+| <a href="media/iperf-client.gif"><img src="media/iperf-client.gif" width="880" height="495" alt="iperf.x クライアントモード"></a> |
 
 | iperf.x サーバーモード（左: ゲスト、右: ホスト側。2倍速再生） |
 | :--- |
-| <img src="media/iperf-server.gif" width="1248" height="702" alt="iperf.x サーバーモード"> |
+| <a href="media/iperf-server.gif"><img src="media/iperf-server.gif" width="880" height="495" alt="iperf.x サーバーモード"></a> |
 
 | sntp.x の実行（左: ゲスト、右: ホスト側。UDP で SNTP サーバーから時刻を取得） |
 | :--- |
-| <img src="media/sntp-host.gif" width="1248" height="702" alt="sntp.x の実行"> |
+| <a href="media/sntp-host.gif"><img src="media/sntp-host.gif" width="880" height="495" alt="sntp.x の実行"></a> |
 
 | telnet.x の実行（左: ゲスト、右: ホスト側。TCPPACK の telnet クライアントで テストサーバーへ接続し、エコーのやり取りをして切断） |
 | :--- |
-| <img src="media/telnet-host.gif" width="1248" height="702" alt="telnet.x の実行"> |
+| <a href="media/telnet-host.gif"><img src="media/telnet-host.gif" width="880" height="495" alt="telnet.x の実行"></a> |
 
 | WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウザで テストページを取得・表示し、リンク先のページへ遷移） |
 | :--- |
-| <img src="media/webxpression-host.gif" width="1248" height="702" alt="WebXpressionPlus の実行"> |
+| <a href="media/webxpression-host.gif"><img src="media/webxpression-host.gif" width="880" height="495" alt="WebXpressionPlus の実行"></a> |
 
 | nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコーサーバーへ 接続して送受信し、相手の切断で終了してプロンプトへ復帰） |
 | :--- |
-| <img src="media/nc-host.gif" width="1248" height="702" alt="nc.x の実行"> |
+| <a href="media/nc-host.gif"><img src="media/nc-host.gif" width="880" height="495" alt="nc.x の実行"></a> |
 
 ## 導入方法
 
