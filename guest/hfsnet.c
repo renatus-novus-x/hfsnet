@@ -152,6 +152,96 @@ static struct mib_array mib_array[4] = {
     { NULL, 0, "UDP" },
     { NULL, 0, "TCP" },
 };
+
+/* ------------------------------------------------------------------ */
+/* 管理系 TI (iface / route / dns) が返す構造体群。レイアウトは       */
+/* 計測技研 network.h の定義と一致させる (オフセットは実測で確認し、  */
+/* 静的アサートで固定する)。アプリは戻り値のポインタをそのまま        */
+/* 参照し、netstat は iface の update 関数ポインタまで呼ぶ            */
+/* ------------------------------------------------------------------ */
+struct iface_h {
+    struct iface_h *next;
+    char *name;
+    int (*config)(struct iface_h *);
+    int (*stop)(struct iface_h *);
+    int (*update)(struct iface_h *);
+    int (*send)(struct iface_h *, void *, long, int, int, int, int);
+    int (*output)(struct iface_h *, char *, char *, long, void *);
+    void (*input)(struct iface_h *, void *);
+    int (*fprint)(void *, char *);
+    int (*sprint)(char *, char *);
+    int (*fscan)(void *, char *);
+    int (*sscan)(char *, char *);
+    int mtu;
+    long my_ip_addr;
+    long net_mask;
+    long broad_cast;
+    short arp_type;
+    short arp_ip_type;
+    short arp_hw_type;
+    int hw_addr_len;
+    char my_hw_addr[16];
+    char my_hw_broad_addr[16];
+    struct iface_h *forw;
+    int flag;
+    long ipsndcnt;
+    long rawsndcnt;
+    long snderrcnt;
+    long iprcvcnt;
+    long rawrcvcnt;
+    long rcverrcnt;
+    long collcnt;
+    long lastsent;
+    long data;
+};
+_Static_assert(__builtin_offsetof(struct iface_h, my_ip_addr) == 52,
+               "iface layout");
+_Static_assert(__builtin_offsetof(struct iface_h, flag) == 110,
+               "iface layout");
+_Static_assert(sizeof(struct iface_h) == 150, "iface layout");
+
+struct route_h {
+    struct route_h *prev;
+    struct route_h *next;
+    long target;
+    unsigned int bits;
+    long gateway;
+    long metric;
+    struct iface_h *iface;
+    int flags;
+    int ttl;
+    int _ttl;
+    long uses;
+};
+_Static_assert(sizeof(struct route_h) == 44, "route layout");
+
+struct dns_h {
+    struct dns_h *prev;
+    struct dns_h *next;
+    long address;
+};
+
+#define IFACE_UP        1
+#define IFACE_RUNNING   2
+#define IFACE_NOARP     4
+#define IFACE_BROAD     16
+#define IFACE_LOOPBACK  32
+
+static char iface_name_lp0[] = "lp0";
+static char iface_name_hf0[] = "hf0";
+static struct iface_h if_lp0, if_hf0;
+static struct route_h rt_default, rt_subnet, rt_loop;
+static struct route_h *route_table[32][5];
+static int subnet_bits = -1;    /* rt_subnet のバケツ番号 (-1 = 未登録) */
+static struct dns_h dns_nodes[4];
+static int dns_count;
+static char domain_name[64];
+/* ARP 表のバケツ列 (17本)。get_arp_table_top は先頭ポインタではなく
+   この配列へのポインタを返すのが ABI の約束 (libnetwork の
+   get_arp_array が _top[x] と添字参照する)。表自体は持たないので
+   中身は常に NULL */
+static void *arp_buckets[17];
+static int rip_flag;            /* inetdconf が読み書きする RIP の台帳 */
 static unsigned char namebuf[NSOCK][16];    /* getsockname 用 */
 static unsigned char peerbuf[NSOCK][16];    /* getpeername 用 */
 static unsigned char sock_state[NSOCK];     /* 最後に STATE で得た状態 */
@@ -1018,6 +1108,170 @@ static long ti_gethostbyname(const char *name)
 }
 
 /* ------------------------------------------------------------------ */
+/* 管理系 TI の実装                                                    */
+/*                                                                     */
+/* hfsnet のゲスト側に実インターフェースや経路表は存在しない (実通信   */
+/* はホスト側のスタックが行う)。ここで返すのは、ifconfig / netstat /   */
+/* inetdconf が表示に必要とする範囲の台帳である:                       */
+/*   - lp0: ループバック (127.0.0.1)                                   */
+/*   - hf0: ホストの IP アドレスを自分のアドレスとして見せる仮想口。   */
+/*     アドレスは常駐時の OP_HOSTINFO 応答で得たもの。ネットマスクは   */
+/*     ホストから取得できないためクラス別デフォルトを使う              */
+/*   - 経路: デフォルト (rt_top の *def で返す) と、hf0 のサブネット、 */
+/*     127.0.0.0/8 の3件だけを持つ                                     */
+/*   - DNS サーバ一覧とドメイン名: inetdconf が読み書きする台帳として  */
+/*     ゲスト内に保持する (名前解決自体はホスト側が行う)               */
+/* ------------------------------------------------------------------ */
+static int iface_update_noop(struct iface_h *p)
+{
+    (void)p;
+    return 0;
+}
+
+/* ホスト IP を hf0 とサブネット経路へ反映する */
+static void apply_host_ip(unsigned long ip)
+{
+    unsigned long mask;
+    int bits;
+
+    if (ip == 0)
+        return;
+    if ((ip >> 24) < 128)           { mask = 0xff000000UL; bits = 8; }
+    else if ((ip >> 24) < 192)      { mask = 0xffff0000UL; bits = 16; }
+    else                            { mask = 0xffffff00UL; bits = 24; }
+    if_hf0.my_ip_addr = (long)ip;
+    if_hf0.net_mask = (long)mask;
+    if_hf0.broad_cast = (long)(ip | ~mask);
+    if (subnet_bits >= 0)
+        route_table[subnet_bits][0] = NULL;
+    rt_subnet.target = (long)(ip & mask);
+    rt_subnet.bits = (unsigned int)bits;
+    route_table[bits][0] = &rt_subnet;
+    subnet_bits = bits;
+}
+
+/* インターフェースと経路表の初期化 (常駐時に main から呼ぶ) */
+static void mgmt_init(unsigned long host_ip)
+{
+    memset(&if_lp0, 0, sizeof(if_lp0));
+    if_lp0.next = &if_hf0;
+    if_lp0.name = iface_name_lp0;
+    if_lp0.update = iface_update_noop;
+    if_lp0.mtu = 16436;
+    if_lp0.my_ip_addr = 0x7f000001L;
+    if_lp0.net_mask = (long)0xff000000UL;
+    if_lp0.broad_cast = 0x7fffffffL;
+    if_lp0.flag = IFACE_UP | IFACE_RUNNING | IFACE_LOOPBACK;
+
+    memset(&if_hf0, 0, sizeof(if_hf0));
+    if_hf0.name = iface_name_hf0;
+    if_hf0.update = iface_update_noop;
+    if_hf0.mtu = 1500;
+    if_hf0.flag = IFACE_UP | IFACE_RUNNING | IFACE_NOARP | IFACE_BROAD;
+
+    memset(&rt_default, 0, sizeof(rt_default));
+    rt_default.iface = &if_hf0;
+    memset(&rt_subnet, 0, sizeof(rt_subnet));
+    rt_subnet.iface = &if_hf0;
+    memset(&rt_loop, 0, sizeof(rt_loop));
+    rt_loop.target = 0x7f000000L;
+    rt_loop.bits = 8;
+    rt_loop.iface = &if_lp0;
+    route_table[8][0] = &rt_loop;
+    if (host_ip != 0)
+        apply_host_ip(host_ip);
+}
+
+/* ホスト IP が未判明なら、短い待ち時間で1回だけ問い合わせる。
+   常駐時にホストが起動していなかった場合の後追い用 */
+static void refresh_host_iface(void)
+{
+    struct resinfo res;
+    long saved_timeout;
+    int r;
+
+    if (if_hf0.my_ip_addr != 0)
+        return;
+    saved_timeout = rpc_timeout;
+    rpc_timeout = 200;              /* 2秒だけ待つ */
+    r = rpc(OP_HOSTINFO, 0, 0, 0, 0, 0, NULL, 0, &res, NULL);
+    rpc_timeout = saved_timeout;
+    if (r == 0 && res.result == 0 && res.aux != 0)
+        apply_host_ip(res.aux);
+}
+
+static struct iface_h *iface_by_name(const char *name)
+{
+    if (strcmp(name, iface_name_lp0) == 0)
+        return &if_lp0;
+    if (strcmp(name, iface_name_hf0) == 0)
+        return &if_hf0;
+    return NULL;
+}
+
+static struct route_h *route_lookup_h(long ip)
+{
+    if (((unsigned long)ip & 0xff000000UL) == 0x7f000000UL)
+        return &rt_loop;
+    if (if_hf0.my_ip_addr != 0 &&
+        ((unsigned long)ip & (unsigned long)if_hf0.net_mask) ==
+        (unsigned long)rt_subnet.target)
+        return &rt_subnet;
+    return &rt_default;
+}
+
+static struct route_h *route_lookupb_h(long target, unsigned int bits)
+{
+    if (rt_loop.target == target && rt_loop.bits == bits)
+        return &rt_loop;
+    if (subnet_bits >= 0 && rt_subnet.target == target &&
+        rt_subnet.bits == bits)
+        return &rt_subnet;
+    if (target == 0 && bits == 0)
+        return &rt_default;
+    return NULL;
+}
+
+static void dns_relink(void)
+{
+    int j;
+    for (j = 0; j < dns_count; j++) {
+        dns_nodes[j].prev = j ? &dns_nodes[j - 1] : NULL;
+        dns_nodes[j].next = (j + 1 < dns_count) ? &dns_nodes[j + 1] : NULL;
+    }
+    if (dns_count == 0)
+        dns_nodes[0].prev = dns_nodes[0].next = NULL;
+}
+
+static int dns_add_h(long addr)
+{
+    int i;
+    for (i = 0; i < dns_count; i++)
+        if (dns_nodes[i].address == addr)
+            return 0;
+    if (dns_count >= 4)
+        return -1;
+    dns_nodes[dns_count++].address = addr;
+    dns_relink();
+    return 0;
+}
+
+static int dns_drop_h(long addr)
+{
+    int i, j;
+    for (i = 0; i < dns_count; i++) {
+        if (dns_nodes[i].address != addr)
+            continue;
+        for (j = i; j + 1 < dns_count; j++)
+            dns_nodes[j].address = dns_nodes[j + 1].address;
+        dns_count--;
+        dns_relink();
+        return 0;
+    }
+    return -1;
+}
+
+/* ------------------------------------------------------------------ */
 /* TI エントリ (head.S の jsr_entry から呼ばれる)                       */
 /*   呼ばれ方: D0 = 関数番号, A0 = 引数 (配列へのポインタ。ただし       */
 /*   close_s / sockstate / sockkick / usesock / rrecvchar / recvchar / */
@@ -1081,6 +1335,66 @@ int do_command(void)
         return 0x00010001;
     case TI_get_MIB:
         return (long)mib_array;
+    case TI_add_arp_table:
+    case TI_del_arp_table:
+        return 0;               /* ARP 表は持たない (受け付けて何もしない) */
+    case TI_search_arp_table:
+        return 0;               /* 該当なし (NULL) */
+    case TI_get_arp_table_top:
+        return (long)arp_buckets;   /* バケツ列へのポインタ (中身は空) */
+    case TI_arp_request:
+        return -1;
+    case TI_get_iface_list:
+        refresh_host_iface();
+        return (long)&if_lp0;
+    case TI_get_new_iface:
+        refresh_host_iface();
+        return (long)iface_by_name((const char *)arg);
+    case TI_link_new_iface:
+        return 0;               /* 実ノードを返しているので確定不要 */
+    case TI_rt_top:
+        if (arg != NULL)
+            *(struct route_h **)arg = &rt_default;
+        return (long)route_table;
+    case TI_rt_lookup:
+        return (long)route_lookup_h((long)arg);
+    case TI_rt_lookupb:
+        return (long)route_lookupb_h(arg[0], (unsigned int)arg[1]);
+    case TI_rt_drop:
+        /* デフォルト経路の削除だけは台帳として受ける */
+        if (arg[0] == 0 && arg[1] == 0) {
+            rt_default.gateway = 0;
+            return 0;
+        }
+        return -1;              /* ホスト側の経路はゲストから変えられない */
+    case TI_rt_add:
+        /* デフォルト経路の追加だけは台帳として受ける */
+        if (arg[0] == 0 && arg[1] == 0) {
+            rt_default.gateway = arg[2];
+            if (arg[3])
+                rt_default.iface = (struct iface_h *)arg[3];
+            rt_default.metric = arg[4];
+            return (long)&rt_default;
+        }
+        return 0;
+    case TI_rip:
+        /* 引数は値そのもの: 0=RIP_ON, 1=RIP_OFF, 2=RIP_STAT。
+           RIP 自体はゲストでは動かないので、表示用の台帳として保持する */
+        if ((long)arg == 0) { rip_flag = 1; return 1; }
+        if ((long)arg == 1) { rip_flag = 0; return 0; }
+        return rip_flag;
+    case TI_dns_add:
+        return dns_add_h((long)arg);
+    case TI_dns_drop:
+        return dns_drop_h((long)arg);
+    case TI_dns_get:
+        return dns_count ? (long)&dns_nodes[0] : 0;
+    case TI_set_domain_name:
+        strncpy(domain_name, (const char *)arg, sizeof(domain_name) - 1);
+        domain_name[sizeof(domain_name) - 1] = '\0';
+        return 0;
+    case TI_get_domain_name:
+        return (long)domain_name;
     case TI_socket:
         return ti_socket(arg);
     case TI_bind:
@@ -1091,14 +1405,26 @@ int do_command(void)
         return ti_accept(arg);
     case TI_connect:
         return ti_connect(arg);
-    case TI_read_s:
-        return ti_read_s(arg);
-    case TI_write_s:
-        return ti_write_s(arg);
-    case TI_recvfrom:
-        return ti_recvfrom(arg);
-    case TI_sendto:
-        return ti_sendto(arg);
+    case TI_read_s: {
+        int r = ti_read_s(arg);
+        if (r > 0) { if_hf0.rawrcvcnt++; if_hf0.iprcvcnt++; }
+        return r;
+    }
+    case TI_write_s: {
+        int r = ti_write_s(arg);
+        if (r > 0) { if_hf0.rawsndcnt++; if_hf0.ipsndcnt++; }
+        return r;
+    }
+    case TI_recvfrom: {
+        int r = ti_recvfrom(arg);
+        if (r > 0) { if_hf0.rawrcvcnt++; if_hf0.iprcvcnt++; }
+        return r;
+    }
+    case TI_sendto: {
+        int r = ti_sendto(arg);
+        if (r > 0) { if_hf0.rawsndcnt++; if_hf0.ipsndcnt++; }
+        return r;
+    }
     case TI_close_s:
         return ti_close_s((long)arg);
     case TI_socklen:
@@ -1305,6 +1631,7 @@ int main(int argc, char *argv[])
     {
         struct resinfo res;
         long saved_timeout = rpc_timeout;
+        unsigned long host_ip = 0;
         int r;
         _dos_delete(path_res);
         /* 通し番号を現在時刻で種付けする。ホストは通し番号が前回と
@@ -1318,6 +1645,7 @@ int main(int argc, char *argv[])
                HFSNET_VERSION, dir);
         if (r == 0 && res.result == 0 && res.aux != 0) {
             unsigned long ip = res.aux;
+            host_ip = ip;
             printf("hfsnet: host IP address: %lu.%lu.%lu.%lu\r\n",
                    (ip >> 24) & 0xff, (ip >> 16) & 0xff,
                    (ip >> 8) & 0xff, ip & 0xff);
@@ -1325,6 +1653,9 @@ int main(int argc, char *argv[])
             printf("hfsnet: no host application. "
                    "Please start the host application.\r\n");
         }
+        /* 管理系 TI (iface / route) の台帳を初期化する。ホスト IP が
+           取れていれば hf0 のアドレスとして反映する */
+        mgmt_init(host_ip);
     }
     fflush(stdout);
 
