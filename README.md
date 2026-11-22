@@ -162,6 +162,11 @@ hf0 のアドレスを変更しても、通信の送信元アドレスはホス�
 なお、インターフェースの名前は、hfsnet の通信口が hf0、
 ループバック（自分自身宛ての通信用）が lp0 です。
 
+管理ツール4本（ifconfig.x / netstat.x / inetdconf.x /
+arp.x）のオプションごとの対応範囲は
+[管理ツールの対応範囲（docs/MANAGEMENT.md）](docs/MANAGEMENT.md)
+にまとめています。
+
 ## 仕組みと技術詳細
 
 - Human68k 側: 常駐ドライバ `hfsnet.x`（elf2x68k 製）。アプリからの TI 呼び出しを

@@ -176,6 +176,11 @@ application's environment).
 The interface names are hf0 for the hfsnet port and lp0 for
 loopback (traffic addressed to the machine itself).
 
+The per-option support of the four management tools
+(ifconfig.x / netstat.x / inetdconf.x / arp.x) is collected
+in [management tool support in detail
+(docs/MANAGEMENT.en.md)](docs/MANAGEMENT.en.md).
+
 ## How it works / technical details
 
 - Human68k side: a resident driver, `hfsnet.x` (built with elf2x68k). It
