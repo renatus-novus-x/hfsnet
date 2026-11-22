@@ -2,7 +2,7 @@
 
 # <img src="assets/icons/hfsnet_header.png" width="48" align="middle" alt="hfsnet アイコン"> hfsnet - HFS 経由の inetd.x 互換ドライバ
 
-Human68k 向け inetd.x 互換 TCP/IP ドライバ（HFS (Host File Systems) 経由）
+Human68k 向け inetd.x 互換 TCP/IP ドライバ（HFS 経由）
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
