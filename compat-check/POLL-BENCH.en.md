@@ -1,6 +1,6 @@
 # Polling interval vs. iperf throughput
 
-[日本語](POLL-BENCH.md)
+[English](POLL-BENCH.en.md) | [日本語](POLL-BENCH.md)
 
 Measured on 2026-11-22–23 with the XEiJ rig (:95). The host was the
 Python `host/hfsnethost.py` (the watch interval is its second argument,
