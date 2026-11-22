@@ -22,6 +22,21 @@ Verification status (as of 2026-11-22): the displays are
 verified on XEiJ, XM6 TypeG, and WebX68k. Real hardware is
 unverified.
 
+## Video
+
+All four management tools run end to end (recorded on XEiJ).
+
+<a href="../media/mgmt-tools.mp4"><img src="../media/mgmt-tools.gif" width="640" alt="Running the four management tools"></a>
+
+The sequence is: installing the driver (the host IP address
+is shown), ifconfig.x for hf0 and lp0, netstat.x -i
+(interface statistics) and -r (routing table), arp.x -a,
+the inetdconf.x display, setting +router and +dns and
+reading them back, netstat.x -r again to check the gateway
+flag (UG), and finally ifconfig.x down and up. Click the
+image for the MP4 version (real speed, about 2 minutes);
+the GIF plays at double speed.
+
 ## ifconfig.x (interface settings and display)
 
 Syntax: `ifconfig <name> [address] [netmask <value>]
@@ -199,3 +214,23 @@ and receives ARP and the table grows (a peer stays for
 stack carries the traffic and the host OS owns the ARP
 table. The guest cannot see it, and a table built on
 the guest side would never be used for communication.
+
+## Limitations summary
+
+- Guest-side settings (address, netmask, default router,
+  DNS servers, domain name, RIP on/off) are kept in the
+  ledger and reflected in the displays only; they do not
+  affect actual traffic. Real communication is decided by
+  the host-side stack and the host OS settings
+- The ARP table is not visible from the guest. The real
+  table belongs to the host OS (arp.x -a works normally
+  against an empty table)
+- The MIB (Management Information Base, the SNMP (Simple
+  Network Management Protocol) statistics database) is an
+  empty dummy. Note that the netstat.x statistics display
+  (-s option) is unimplemented in the original TCPPACK too
+- No reverse name lookups are done, so displays in
+  netstat.x and friends always show numeric addresses
+- RIP initially displays as Off (inetd.x defaults to On)
+- Real hardware is unverified (verified on XEiJ, XM6
+  TypeG, and WebX68k)
