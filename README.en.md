@@ -1,16 +1,16 @@
 [English](README.en.md) | [日本語](README.md)
 
-<p align="center">
-  <img src="assets/icons/hfsnet_256x256.png" width="128" alt="hfsnet icon">
-</p>
+<img src="assets/icons/hfsnet_256x256.png" width="96" align="left" alt="hfsnet icon">
 
 # hfsnet — an inetd.x-compatible driver over a shared folder
 
-<p align="center">inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders</p>
+inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
 [![GUI host (Windows)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml)
+
+<br clear="left">
 
 hfsnet is an experimental implementation that gives Human68k a Keisoku Giken
 **inetd.x-compatible API** (the TCP/IP driver calling convention, the so-called
