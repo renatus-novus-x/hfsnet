@@ -110,6 +110,16 @@ of the folder (`-r` works too):
 - Do not remove the driver while a network application is running
   (an application may have cached the driver's entry point)
 
+### Host polling interval (optional)
+
+The host application checks for request files from the guest every
+10 ms by default. A shorter interval makes the guest respond faster,
+at the cost of higher CPU usage on the host.
+
+- GUI version: use the "Poll interval (ms)" field in the window
+  (the setting is saved). You can also pass `--poll <ms>` at startup
+- Python version: `python3 hfsnethost.py <shared folder path> <ms>`
+
 ### Verified environments
 
 On each of XEiJ (HFS), XM6 TypeG (Windrv), and WebX68k (HostFS), the
