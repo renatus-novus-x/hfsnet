@@ -38,8 +38,6 @@ reads and writes. The same mechanism therefore also works on real
 hardware, as long as there is a folder both sides can read and write,
 such as XM6 TypeG's **Windrv** or the X68000Z's file sharing feature.
 
-This is an experimental implementation.
-
 ## In action
 
 All of these were recorded with XEiJ and the GUI host.
