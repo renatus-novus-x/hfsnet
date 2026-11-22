@@ -2,7 +2,7 @@
 
 [English](TECHNICAL.en.md) | [日本語](TECHNICAL.md)
 
-Protocol and driver implementation details, split out from the README.
+Protocol and driver implementation details.
 For usage, see the [README](../README.en.md).
 
 ## File protocol

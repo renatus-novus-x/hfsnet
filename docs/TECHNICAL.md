@@ -2,7 +2,7 @@
 
 [English](TECHNICAL.en.md) | [日本語](TECHNICAL.md)
 
-README から切り出した、プロトコルとドライバ実装の詳細です。
+プロトコルとドライバ実装の詳細です。
 使い方は [README](../README.md) を参照してください。
 
 ## ファイルプロトコル
