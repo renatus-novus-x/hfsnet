@@ -1,6 +1,12 @@
 [English](README.en.md) | [日本語](README.md)
 
+<p align="center">
+  <img src="assets/icons/hfsnet_256x256.png" width="128" alt="hfsnet アイコン">
+</p>
+
 # hfsnet — 共有フォルダ経由の inetd.x 互換ドライバ
+
+<p align="center">Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォルダ経由）</p>
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
@@ -235,3 +241,9 @@ make        # hfsnet.x ができる
   たどるための DOS 呼び出し）が、この種のドライブでは通らないためです。
   XEiJ、XM6 TypeG、WebX68k では、保存先をフロッピーや HDD のような
   実ドライブにすると取得できます
+
+## ライセンス
+
+GUI 版ホストが使うライブラリとフォントのライセンスは、
+配布物の THIRD-PARTY-NOTICES.txt と licenses/ フォルダに
+まとめています。

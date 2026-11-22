@@ -1,6 +1,12 @@
 [English](README.en.md) | [日本語](README.md)
 
+<p align="center">
+  <img src="assets/icons/hfsnet_256x256.png" width="128" alt="hfsnet icon">
+</p>
+
 # hfsnet — an inetd.x-compatible driver over a shared folder
+
+<p align="center">inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders</p>
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
@@ -254,3 +260,9 @@ of the folder (`-r` works too):
   drive. On XEiJ, XM6 TypeG, and WebX68k, choosing a real drive
   such as a floppy or a hard disk as the destination lets the get
   succeed
+
+## Licenses
+
+The licenses of the libraries and the font used by the GUI host
+are collected in THIRD-PARTY-NOTICES.txt and the licenses/
+folder of the distribution.
