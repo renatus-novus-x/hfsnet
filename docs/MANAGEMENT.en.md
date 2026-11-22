@@ -19,8 +19,8 @@ traffic. See "About guest-side settings" in the README for
 details. Most of the △ marks below exist for this reason.
 
 Verification status (as of 2026-11-22): the displays are
-verified on XEiJ and XM6 TypeG. WebX68k is in progress, and
-real hardware is unverified.
+verified on XEiJ, XM6 TypeG, and WebX68k. Real hardware is
+unverified.
 
 ## ifconfig.x (interface settings and display)
 
