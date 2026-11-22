@@ -15,6 +15,7 @@ enum class Str {
     ColSlot, ColKind, ColState, ColPeer, ColTx, ColRx,
     StatePolls, ClearLog,
     AboutText,
+    DialogFailed, FontMissing,
     Count
 };
 

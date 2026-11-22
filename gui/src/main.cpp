@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <deque>
+#include <filesystem>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -94,6 +95,8 @@ int run_headless(const std::string &folder)
 #include "imgui_impl_opengl3.h"
 #include "nfd.h"
 
+#include "icon_rgba.h"
+
 namespace {
 
 const char *STATE_NAMES[] = {"CLOSED",   "LISTEN",      "SYN_SENT",
@@ -135,6 +138,8 @@ bool load_japanese_font()
         "/System/Library/Fonts/Hiragino Sans GB.ttc",
         "/System/Library/Fonts/PingFang.ttc",
 #else
+        "fonts/ipaexg.ttf",
+        "ipaexg.ttf",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
@@ -190,6 +195,33 @@ void draw_graph(const Snapshot &sn)
     plot(false, IM_COL32(90, 220, 130, 255));
 }
 
+// ---- フォルダ欄へのドラッグ&ドロップ ----
+// ドロップ位置がフォルダ入力欄の矩形の中だったときだけ、そのパスを
+// 共有フォルダとして受け付ける。ファイルが落とされた場合は親フォルダを
+// 使う。実際の設定はメインループ側で g_drop_pending を見て反映する。
+std::string g_drop_pending;
+ImVec2 g_folder_rect_min(0, 0), g_folder_rect_max(0, 0);
+
+void drop_callback(GLFWwindow *window, int count, const char **paths)
+{
+    if (count <= 0 || !paths || !paths[0])
+        return;
+    double cx = 0, cy = 0;
+    glfwGetCursorPos(window, &cx, &cy);
+    if (cx < g_folder_rect_min.x || cx > g_folder_rect_max.x ||
+        cy < g_folder_rect_min.y || cy > g_folder_rect_max.y)
+        return;
+    std::error_code ec;
+    std::filesystem::path p = std::filesystem::u8path(paths[0]);
+    if (std::filesystem::is_directory(p, ec)) {
+        g_drop_pending = p.u8string();
+    } else {
+        std::filesystem::path parent = p.parent_path();
+        if (!parent.empty())
+            g_drop_pending = parent.u8string();
+    }
+}
+
 int run_gui(Settings settings)
 {
     if (!glfwInit())
@@ -212,13 +244,30 @@ int run_gui(Settings settings)
         return 1;
     }
     glfwMakeContextCurrent(window);
+    {
+        // ウィンドウアイコン (タスクバー/タイトルバー用)。
+        // Windows では exe リソースのアイコンが優先されるが、
+        // 他 OS と実行時表示の統一のためこちらでも設定する
+        GLFWimage icons[3];
+        icons[0].width = 32;
+        icons[0].height = 32;
+        icons[0].pixels = const_cast<unsigned char *>(icon_rgba_32);
+        icons[1].width = 48;
+        icons[1].height = 48;
+        icons[1].pixels = const_cast<unsigned char *>(icon_rgba_48);
+        icons[2].width = 64;
+        icons[2].height = 64;
+        icons[2].pixels = const_cast<unsigned char *>(icon_rgba_64);
+        glfwSetWindowIcon(window, 3, icons);
+    }
+    glfwSetDropCallback(window, drop_callback);
     glfwSwapInterval(1);
     glewInit();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    load_japanese_font();
+    bool jp_font_ok = load_japanese_font();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl);
     NFD_Init();
@@ -226,6 +275,13 @@ int run_gui(Settings settings)
     Engine engine;
     LogSink sink;
     engine.set_log_callback([&sink](const std::string &s) { sink.add(s); });
+    if (!jp_font_ok) {
+        // 日本語フォントが無いと日本語表示は読めないので、このセッション
+        // の表示だけ English に倒し、理由をログに残す (設定は変えない)
+        if (i18n::lang() == Lang::Ja)
+            i18n::set_lang(Lang::En);
+        sink.add(i18n::s(Str::FontMissing));
+    }
 
     char folder_buf[512];
     std::snprintf(folder_buf, sizeof(folder_buf), "%s",
@@ -287,16 +343,28 @@ int run_gui(Settings settings)
             ImGui::EndPopup();
         }
 
+        if (!g_drop_pending.empty()) {
+            std::snprintf(folder_buf, sizeof(folder_buf), "%s",
+                          g_drop_pending.c_str());
+            g_drop_pending.clear();
+        }
         ImGui::TextUnformatted(i18n::s(Str::Folder));
         ImGui::SameLine();
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 190);
         ImGui::InputText("##folder", folder_buf, sizeof(folder_buf));
+        g_folder_rect_min = ImGui::GetItemRectMin();
+        g_folder_rect_max = ImGui::GetItemRectMax();
         ImGui::SameLine();
         if (ImGui::Button(i18n::s(Str::Browse), ImVec2(80, 0))) {
             nfdchar_t *out = nullptr;
-            if (NFD_PickFolder(&out, nullptr) == NFD_OKAY && out) {
+            nfdresult_t res = NFD_PickFolder(&out, nullptr);
+            if (res == NFD_OKAY && out) {
                 std::snprintf(folder_buf, sizeof(folder_buf), "%s", out);
                 NFD_FreePath(out);
+            } else if (res == NFD_ERROR) {
+                // ダイアログ基盤が無い環境 (WSL 等) では無反応に見える
+                // ため、失敗したことをログで知らせる (キャンセルは無言)
+                sink.add(i18n::s(Str::DialogFailed));
             }
         }
         ImGui::SameLine();
