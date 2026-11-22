@@ -1,8 +1,9 @@
 // main.cpp - hfsnet ホスト GUI 版 (プロトタイプ)
 // 使い方:
-//   hfsnet-host [--lang ja|en] [folder]      GUI
-//   hfsnet-host --headless <folder>          エンジンのみ (テスト・CI 用)
+//   hfsnet-host [--lang ja|en] [--poll ms] [folder]   GUI
+//   hfsnet-host --headless [--poll ms] <folder>       エンジンのみ (テスト・CI 用)
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <filesystem>
@@ -21,6 +22,7 @@ std::string g_settings_path = "hfsnet-host.ini";
 struct Settings {
     Lang lang = Lang::Ja;
     std::string folder;
+    int poll_ms = 10;
 };
 
 Settings load_settings()
@@ -33,6 +35,8 @@ Settings load_settings()
     while (std::fgets(line, sizeof(line), f)) {
         if (std::strncmp(line, "lang=", 5) == 0)
             st.lang = std::strstr(line, "en") ? Lang::En : Lang::Ja;
+        else if (std::strncmp(line, "poll_ms=", 8) == 0)
+            st.poll_ms = std::atoi(line + 8);
         else if (std::strncmp(line, "folder=", 7) == 0) {
             st.folder = line + 7;
             while (!st.folder.empty() &&
@@ -49,8 +53,9 @@ void save_settings(const Settings &st)
     FILE *f = std::fopen(g_settings_path.c_str(), "w");
     if (!f)
         return;
-    std::fprintf(f, "lang=%s\nfolder=%s\n",
-                 st.lang == Lang::En ? "en" : "ja", st.folder.c_str());
+    std::fprintf(f, "lang=%s\nfolder=%s\npoll_ms=%d\n",
+                 st.lang == Lang::En ? "en" : "ja", st.folder.c_str(),
+                 st.poll_ms);
     std::fclose(f);
 }
 
@@ -72,13 +77,14 @@ struct LogSink {
     }
 };
 
-int run_headless(const std::string &folder)
+int run_headless(const std::string &folder, int poll_ms)
 {
     Engine engine;
     engine.set_log_callback([](const std::string &s) {
         std::printf("%s\n", s.c_str());
         std::fflush(stdout);
     });
+    engine.set_poll_ms(poll_ms);
     engine.start(folder);
     engine.wait();
     return 0;
@@ -370,6 +376,7 @@ int run_gui(Settings settings)
         ImGui::SameLine();
         if (!sn.running) {
             if (ImGui::Button(i18n::s(Str::Start), ImVec2(90, 0))) {
+                engine.set_poll_ms(settings.poll_ms);
                 engine.start(folder_buf);
                 settings.folder = folder_buf;
                 save_settings(settings);
@@ -378,6 +385,16 @@ int run_gui(Settings settings)
             if (ImGui::Button(i18n::s(Str::Stop), ImVec2(90, 0)))
                 engine.stop();
         }
+        ImGui::BeginDisabled(sn.running);
+        ImGui::SetNextItemWidth(120);
+        if (ImGui::InputInt(i18n::s(Str::PollInterval), &settings.poll_ms)) {
+            if (settings.poll_ms < 0)
+                settings.poll_ms = 0;
+            if (settings.poll_ms > 1000)
+                settings.poll_ms = 1000;
+            save_settings(settings);
+        }
+        ImGui::EndDisabled();
 
         ImGui::Separator();
         ImGui::Text("%s: %s", i18n::s(Str::Title),
@@ -486,6 +503,8 @@ int main(int argc, char **argv)
         else if (a == "--lang" && i + 1 < argc)
             settings.lang = std::string(argv[++i]) == "en" ? Lang::En
                                                            : Lang::Ja;
+        else if (a == "--poll" && i + 1 < argc)
+            settings.poll_ms = std::atoi(argv[++i]);
         else
             folder = a;
     }
@@ -494,10 +513,11 @@ int main(int argc, char **argv)
         if (folder.empty() && !settings.folder.empty())
             folder = settings.folder;
         if (folder.empty()) {
-            std::fprintf(stderr, "usage: hfsnet-host --headless <folder>\n");
+            std::fprintf(stderr,
+                         "usage: hfsnet-host --headless [--poll ms] <folder>\n");
             return 1;
         }
-        return run_headless(folder);
+        return run_headless(folder, settings.poll_ms);
     }
     if (!folder.empty())
         settings.folder = folder;

@@ -47,6 +47,11 @@ public:
 
     // 監視を開始する。folder は UTF-8 パス。
     bool start(const std::string &folder);
+
+    // 要求ファイルの監視間隔 (ミリ秒)。既定は 10。短くするとゲストの
+    // 応答が速くなる代わりにホストの CPU 使用率が上がる。0 で待ちなし。
+    // start() の前に呼ぶこと。
+    void set_poll_ms(int ms);
     void stop();
     bool running() const { return running_.load(); }
 
@@ -74,6 +79,7 @@ private:
 
     std::atomic<bool> running_{false};
     std::thread worker_;
+    int poll_ms_ = 10;
     std::string folder_;
     std::string req_path_, res_path_, tmp_path_;
     std::vector<Slot> slots_;

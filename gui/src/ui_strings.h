@@ -8,7 +8,7 @@ enum class Lang { Ja, En };
 enum class Str {
     Title,
     MenuFile, MenuQuit, MenuLanguage, MenuHelp, MenuAbout,
-    Folder, Browse, Start, Stop,
+    Folder, Browse, Start, Stop, PollInterval,
     StatusRunning, StatusStopped,
     TxTotal, RxTotal, Rate, PerSec,
     HistoryTitle, SlotsTitle, LogTitle,

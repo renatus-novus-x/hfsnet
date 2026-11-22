@@ -89,6 +89,11 @@ struct Engine::Slot {
 Engine::Engine() : slots_(NSOCK) {}
 Engine::~Engine() { stop(); }
 
+void Engine::set_poll_ms(int ms)
+{
+    poll_ms_ = ms < 0 ? 0 : ms;
+}
+
 bool Engine::start(const std::string &folder)
 {
     stop();
@@ -206,7 +211,7 @@ void Engine::loop()
                 }
             }
         }
-        plat::sleep_ms(10);
+        plat::sleep_ms(poll_ms_);
     }
 }
 

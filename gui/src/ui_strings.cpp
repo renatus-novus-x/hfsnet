@@ -9,7 +9,7 @@ Lang g_lang = Lang::Ja;
 const char *JA[static_cast<size_t>(Str::Count)] = {
     "hfsnet ホスト",                       // Title
     "ファイル", "終了", "言語", "ヘルプ", "バージョン情報",
-    "共有フォルダ", "参照...", "開始", "停止",
+    "共有フォルダ", "参照...", "開始", "停止", "ポーリング間隔 (ミリ秒)",
     "動作中", "停止中",
     "送信 累計", "受信 累計", "速度", "B/秒",
     "トラフィック (直近60秒)", "ソケット", "ログ",
@@ -29,7 +29,7 @@ const char *JA[static_cast<size_t>(Str::Count)] = {
 const char *EN[static_cast<size_t>(Str::Count)] = {
     "hfsnet Host",
     "File", "Quit", "Language", "Help", "About",
-    "Shared folder", "Browse...", "Start", "Stop",
+    "Shared folder", "Browse...", "Start", "Stop", "Poll interval (ms)",
     "Running", "Stopped",
     "TX total", "RX total", "Rate", "B/s",
     "Traffic (last 60 s)", "Sockets", "Log",
