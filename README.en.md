@@ -12,32 +12,42 @@ inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
 
 <br clear="left">
 
-hfsnet is an experimental implementation that gives Human68k a Keisoku Giken
-**inetd.x-compatible API** (the TCP/IP driver calling convention, the so-called
-TI entry) using nothing but a folder that the guest can read and write from
-the host side (such as XEiJ's **HFS**, XM6 TypeG's **Windrv**, and
-WebX68k's **HostFS**).
+## What is this?
 
-No emulator-specific features are used — only ordinary file reads and writes.
+hfsnet is a driver that brings TCP/IP networking to the X68000 /
+Human68k. No additional hardware, such as a network board, is needed:
+using only an emulator's shared-folder feature (XEiJ's **HFS**,
+WebX68k's **HostFS**), it provides a Keisoku Giken **inetd.x-compatible
+API** (the TCP/IP driver calling convention, the so-called TI entry).
+At present there is no other way to connect an X68000 to a network
+without additional hardware.
 
-- Guest side: a resident driver, `hfsnet.x` (built with elf2x68k). It
-  translates TI calls from applications into request/response file exchanges
-  inside the shared folder.
-- Host side: a console app, `hfsnethost.py` (Python 3, standard library
-  only). It watches the request file, operates real TCP sockets, and writes
-  the results into the response file.
+Existing communication applications that use the inetd.x-compatible
+API then just work:
 
-Receive notification is done by polling — the driver periodically re-opens
-the response file — rather than by interrupts (blocking calls wait in a loop
-inside the driver).
+- Fetch web pages with `httpclient.x` or WebXpressionPlus
+- Transfer files with `ftp.x`, log in remotely with `telnet.x`
+- Set the clock with `sntp.x`, check reachability with `ping.x`,
+  measure throughput with `iperf.x`
+- Send and receive over TCP / UDP with `nc.x` (netcat-x68k)
+
+The mechanism is simple: a resident driver on the guest, `hfsnet.x`,
+translates TI calls from applications into file exchanges inside the
+shared folder, and an application on the host operates the real
+sockets. No emulator-specific features are used — only ordinary file
+reads and writes. The same mechanism therefore also works on real
+hardware, as long as there is a folder both sides can read and write,
+such as XM6 TypeG's **Windrv** or the X68000Z's file sharing feature.
+
+This is an experimental implementation.
 
 ## In action
 
-All of these were recorded on XEiJ.
+All of these were recorded with XEiJ and the GUI host.
 
-httpclient.x running (left: guest, right: the host-side hfsnethost.py log):
+httpclient.x running (left: guest, right: the GUI host):
 
-![httpclient.x with the host-side log](httpclient-host.gif)
+![httpclient.x with the host side](httpclient-host.gif)
 
 iperf.x in client mode (left: guest, right: host side):
 
@@ -69,167 +79,31 @@ peer disconnects):
 
 ![nc.x running](nc-host.gif)
 
-## Requirements
+## Getting started
 
+These steps are for XEiJ or WebX68k first. You need:
+
+- A PC running XEiJ or WebX68k (Windows / macOS / Linux)
 - A shared folder that both the guest and the host can read and write
   (writes must reach the real file when the file is closed)
-- `hfsnethost.py` running on the host
-- Guest applications that use an inetd.x-compatible API, such as elf2x68k's
-  libsocket
 
-Verified environments: five. On each of XEiJ (HFS), XM6 TypeG (Windrv),
-and WebX68k (HostFS), HTTP fetching with httpclient.x, iperf in both
-client and server modes, and SNTP time fetching with sntp.x (UDP) have
-been verified. On real hardware, both an X68000Z and an X68000Z XVI
-"X EMULATER" combined with x68kzremotedrv (a remote drive service
-using a Raspberry Pi Pico W), HTTP fetching with httpclient.x
-(including name resolution) and SNTP time fetching with sntp.x have
-also been verified. On the X68000Z XVI "X EMULATER", HTTP fetching with httpclient.x and SNTP time fetching with sntp.x have also been verified over the machine's built-in Windows file sharing feature. With the current driver, which implements the extended
-TI functions, a full telnet.x session (connect, echo exchange,
-disconnect, and return to the prompt) has also been verified on all
-three environments. telnet.x beta3 has likewise been verified in the
-same way. nc.x (netcat-x68k) has likewise been verified on all three
-environments, over both TCP (client and listening) and UDP.
-WebXpressionPlus fetching and displaying plain
-HTTP pages (including following a link to a second page) has likewise
-been verified on all three environments.
-A throughput report for iperf measured on real hardware
-(X68000Z XVI) is available in
-[compat-check/IPERF-REPORT.en.md](compat-check/IPERF-REPORT.en.md).
+Steps:
 
-## Download
-
-A prebuilt package (a zip containing `hfsnet.x` and `hfsnethost.py`) is
-available from [Releases](https://github.com/renatus-novus-x/hfsnet/releases).
-
-## File protocol
-
-Only two files live in the shared folder. Both are binary, and multi-byte
-values are big-endian (network byte order).
-
-- `HFSREQ.BIN` — guest → host request (written by the guest)
-- `HFSRES.BIN` — host → guest response (written by the host; written under a
-  temporary name and then renamed into place, so the guest never reads a
-  partially written response)
-
-### Request (HFSREQ.BIN, 20-byte header + payload)
-
-| Offset | Size | Contents |
-| --- | --- | --- |
-| 0 | 2 | Magic `'H' 'N'` |
-| 2 | 1 | Operation code (see below) |
-| 3 | 1 | Socket number (guest-side slot 0–31) |
-| 4 | 4 | Sequence number (incremented by the guest per request; used to match responses) |
-| 8 | 2 | Port number (used by CONNECT / BIND; the destination port for UDP SEND) |
-| 10 | 2 | Auxiliary argument (socket type for OPEN (0 = SOCK_STREAM, 1 = SOCK_DGRAM), LISTEN backlog, ACCEPT destination slot, SHUTDOWN how) |
-| 12 | 4 | IPv4 address (used by CONNECT / BIND; the destination address for UDP SEND) |
-| 16 | 4 | Payload length (for RECV, the receive limit) |
-| 20 | variable | Payload (SEND data, the host name for RESOLVE, etc.) |
-
-### Response (HFSRES.BIN, 24-byte header + payload)
-
-| Offset | Size | Contents |
-| --- | --- | --- |
-| 0 | 2 | Magic `'H' 'N'` |
-| 2 | 1 | Operation code (copy of the request) |
-| 3 | 1 | Socket number (copy of the request) |
-| 4 | 4 | Sequence number (copy of the request) |
-| 8 | 4 | Result (meaning depends on the operation; see below) |
-| 12 | 2 | Port number (the peer's port for ACCEPT; the source port for UDP RECV) |
-| 14 | 2 | Reserved (0) |
-| 16 | 4 | Payload length (for STATE, the number of bytes available to receive) |
-| 20 | 4 | Auxiliary value (state code for STATE, IPv4 address for RESOLVE, the peer's IPv4 address for ACCEPT, the source IPv4 address for UDP RECV) |
-| 24 | variable | Payload (data for RECV) |
-
-### Operation codes and the meaning of the result
-
-| Code | Name | Meaning of the result |
-| --- | --- | --- |
-| 1 | OPEN | 0 = success, -1 = failure |
-| 2 | CLOSE | 0 = success |
-| 3 | CONNECT | 0 = connected, 1 = in progress, -1 = failure |
-| 4 | SEND | Number of bytes sent, -2 = cannot send now, -1 = failure |
-| 5 | RECV | Number of bytes received, 0 = peer closed (EOF), -2 = no data yet, -1 = failure |
-| 6 | STATE | State code (see below). len = bytes available to receive, aux = bytes that can be sent (approximate) |
-| 7 | RESOLVE | 0 = success (IPv4 address in aux), -1 = failure |
-| 8 | BIND | 0 = success, -1 = failure |
-| 9 | LISTEN | 0 = success, -1 = failure |
-| 10 | ACCEPT | 0 = success, -2 = no connection yet, -1 = failure |
-| 11 | SHUTDOWN | 0 = success, -1 = failure. how (auxiliary argument): 0 = receive side, 1 = send side, 2 = both |
-
-State codes: 0 CLOSED / 1 LISTEN / 2 SYN_SENT / 3 SYN_RECEIVED /
-4 ESTABLISHED / 5 CLOSE_WAIT / 6 FIN_WAIT / 7 TIME_WAIT / 8 CLOSING
-
-### Synchronization rules
-
-- Only one request is in flight at a time (enough for Human68k applications,
-  which basically call the driver from a single flow of control)
-- The guest writes and closes the request, then keeps re-opening the
-  response file until it finds a response whose sequence number matches
-- The host processes only requests whose sequence number differs from the
-  last one it handled; a partially written request (header length not
-  matching the actual file length) is read again later
-
-## TI functions implemented by the guest driver
-
-Numbering follows the function table in Keisoku Giken's tcpipdrv.h
-(the order of the `_TI_` entries).
-
-Implemented: get_version / socket / bind / listen / accept / connect /
-read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
-getsockname / getpeername / sockkick / usesock / recvline / sendline /
-rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
-psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
-
-The pointer-returning lookup functions (gethostbyaddr /
-getnetbyname / getnetbyaddr / getservbyname / getservbyport /
-getprotobyname / getprotobynumber) return NULL, not -1, when the
-lookup fails. Any other unimplemented function returns -1. Limitations:
-
-- Socket types supported are TCP (SOCK_STREAM) and UDP (SOCK_DGRAM);
-  socket() returns -1 for RAW
-- ICMP is not supported. ping.x opens a raw socket (SOCK_RAW) because it
-  uses ICMP (Internet Control Message Protocol), but this driver supports
-  TCP / UDP only and returns -1 from socket() for raw sockets. TCP and
-  UDP alone still cover a reasonable range of uses
-- The address arguments of sendto / recvfrom are honored for UDP
-  (for TCP the socket is treated as connected)
-- Flags such as MSG_PEEK are ignored
-- getsockname returns the actual local address and port established
-by bind / connect (0.0.0.0:0 if neither has happened)
-
-The driver's resident layout follows the same convention as real
-inetd.x-compatible drivers (such as yunkya2's joynetd): the program image
-starts with the `"TCP/IP"` signature, the entry point is right after it
-(at offset 8), it is called with the function number in D0 and a pointer
-to the argument array in A0, and the result comes back in D0. The socket
-state structures (the usock array) are published via sock_top, which also
-matches libsocket's convention of reading and writing the non-blocking
-flag directly.
-
-## Building
-
-Guest side (using elf2x68k):
-
-```sh
-cd guest
-export PATH=<elf2x68k bin directory>:$PATH
-make        # produces hfsnet.x
-```
-
-The host side needs no build.
-
-## Usage
-
-1. Create a folder for sharing (e.g. `hfsnet-share` on the PC) and connect
-   it as a guest drive through the emulator's HFS or similar
-   (connect with write permission)
-2. Start the host-side companion:
-   `python3 host/hfsnethost.py <path to the shared folder>`
+1. Download the ZIP for your OS (Windows / Linux / macOS) from
+   [Releases](https://github.com/renatus-novus-x/hfsnet/releases)
+   and extract it
+2. Start the host-side application
+   - GUI host (recommended): launch `hfsnet-host`, select the shared
+     folder the emulator uses (the HFS folder for XEiJ, the HostFS
+     folder for WebX68k), and press Start
+   - Python host: `python3 hfsnethost.py <path to the shared folder>`
+     (Python 3, standard library only. It does not handle ICMP,
+     so use the GUI host if you want ping.x)
 3. Load the driver on the guest (give the folder's guest-side path):
    `hfsnet.x C:\HFSNET`
-4. Applications that use libsocket (such as the elf2x68k sample
-   httpclient.x) can then communicate as-is
+4. Applications that use an inetd.x-compatible API (such as
+   httpclient.x, which uses elf2x68k's libsocket) can then
+   communicate as-is
 
 The driver can also be removed without rebooting. Give `/r` instead
 of the folder (`-r` works too):
@@ -243,6 +117,24 @@ of the folder (`-r` works too):
   `hfsnet: cannot remove: N socket(s) in use.`
 - Do not remove the driver while a network application is running
   (an application may have cached the driver's entry point)
+
+### Verified environments
+
+On each of XEiJ (HFS), XM6 TypeG (Windrv), and WebX68k (HostFS), the
+following have been verified: HTTP fetching with httpclient.x, iperf
+in client and server modes, SNTP time fetching with sntp.x (UDP),
+full telnet.x and telnet.x beta3 sessions, nc.x over TCP (client and
+listening) and UDP, and WebXpressionPlus fetching and displaying
+plain HTTP pages.
+
+On real hardware, both an X68000Z and an X68000Z XVI "X EMULATER"
+combined with x68kzremotedrv (a remote drive service using a
+Raspberry Pi Pico W), and the X68000Z XVI's built-in Windows file
+sharing feature, have been verified with HTTP fetching by
+httpclient.x (including name resolution) and SNTP time fetching by
+sntp.x. A throughput report for iperf measured on real hardware
+(X68000Z XVI) is available in
+[compat-check/IPERF-REPORT.en.md](compat-check/IPERF-REPORT.en.md).
 
 ## Known limitations
 
@@ -260,6 +152,24 @@ of the folder (`-r` works too):
   drive. On XEiJ, XM6 TypeG, and WebX68k, choosing a real drive
   such as a floppy or a hard disk as the destination lets the get
   succeed
+
+## How it works / technical details
+
+- Guest side: a resident driver, `hfsnet.x` (built with elf2x68k). It
+  translates TI calls from applications into request/response file
+  exchanges inside the shared folder
+- Host side: the GUI application `hfsnet-host`, or the console app
+  `hfsnethost.py` (Python 3, standard library only). It watches the
+  request file, operates real TCP sockets, and writes the results
+  into the response file
+
+Receive notification is done by polling — the driver periodically
+re-opens the response file — rather than by interrupts (blocking
+calls wait in a loop inside the driver).
+
+The file protocol specification, the list of TI functions the driver
+implements, and build instructions are in the
+[technical details (docs/TECHNICAL.en.md)](docs/TECHNICAL.en.md).
 
 ## Licenses
 

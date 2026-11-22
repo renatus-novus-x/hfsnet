@@ -12,28 +12,38 @@ Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォ�
 
 <br clear="left">
 
-ホスト側フォルダをゲストから読み書きできる仕組み（XEiJ の **HFS**、
-XM6 TypeG の **Windrv**、WebX68k の **HostFS** など）
-だけを使って、Human68k に計測技研 **inetd.x 互換 API**
-（TCP/IP ドライバの呼び出し規約、いわゆる TI エントリ）を提供する実験実装です。
+## これは何か
 
-エミュレータ固有の機能は一切使いません。使うのは通常のファイル読み書きだけです。
+hfsnet は、X68000 / Human68k に TCP/IP 通信を持ち込むためのドライバです。
+ネットワークボードなどの追加ハードウェアは要りません。エミュレータの
+共有フォルダ機能（XEiJ の **HFS**、WebX68k の **HostFS**）だけを使って、
+計測技研 **inetd.x 互換 API**（TCP/IP ドライバの呼び出し規約、いわゆる
+TI エントリ）を提供します。追加ハードなしに X68000 をネットにつなぐ
+手段は、現在のところ他にありません。
 
-- ゲスト側: 常駐ドライバ `hfsnet.x`（elf2x68k 製）。アプリからの TI 呼び出しを
-  共有フォルダ内の要求ファイル／応答ファイルのやり取りに翻訳します
-- ホスト側: コンソールアプリ `hfsnethost.py`（Python 3、標準ライブラリのみ）。
-  要求ファイルを見張り、実際の TCP ソケットを操作して応答ファイルに結果を書きます
+これで、inetd.x 互換 API を使う既存の通信アプリがそのまま動きます:
 
-受信の通知は割り込みではなく、ドライバが応答ファイルを定期的に開き直す
-ポーリングで実現しています（ブロッキング呼び出しはドライバ内部のループで待ちます）。
+- `httpclient.x` や WebXpressionPlus で Web ページの取得
+- `ftp.x` でファイル転送、`telnet.x` でリモートログイン
+- `sntp.x` で時刻合わせ、`ping.x` で到達確認、`iperf.x` で速度計測
+- `nc.x`（netcat-x68k）で TCP / UDP の送受信
+
+仕組みは単純で、ゲスト側の常駐ドライバ `hfsnet.x` がアプリからの
+TI 呼び出しを共有フォルダ内のファイルのやり取りに翻訳し、ホスト側の
+アプリが実際のソケットを操作します。エミュレータ固有の機能は一切
+使わず、使うのは通常のファイル読み書きだけです。そのため実機でも、
+XM6 TypeG の **Windrv** や X68000Z のファイル共有機能など、双方向に
+読み書きできる共有フォルダがあれば同じ仕組みで動きます。
+
+実験実装です。
 
 ## 動作の様子
 
-いずれも XEiJ 上での実行です。
+いずれも XEiJ と GUI 版ホストでの実行です。
 
-httpclient.x の実行（左: ゲスト、右: ホスト側 hfsnethost.py のログ）:
+httpclient.x の実行（左: ゲスト、右: ホスト側 GUI 版ホスト）:
 
-![httpclient.x とホスト側ログ](httpclient-host.gif)
+![httpclient.x とホスト側](httpclient-host.gif)
 
 iperf.x クライアントモード（左: ゲスト、右: ホスト側）:
 
@@ -62,159 +72,29 @@ nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコー�
 
 ![nc.x の実行](nc-host.gif)
 
-## 動作条件
+## 導入方法
 
-- ゲストとホストで**双方向に読み書きできる共有フォルダ**があること
+まず XEiJ または WebX68k で使う手順です。必要なもの:
+
+- XEiJ または WebX68k が動く PC（Windows / macOS / Linux）
+- ゲストとホストで双方向に読み書きできる共有フォルダ
   （書き込みは閉じた時点で実ファイルへ反映されること）
-- ホスト側で `hfsnethost.py` が常駐していること
-- ゲスト側アプリは elf2x68k の libsocket など、inetd.x 互換 API を使うもの
 
-動作確認済みの環境は5つあります。XEiJ（HFS）、XM6 TypeG（Windrv）、
-WebX68k（HostFS）のいずれでも、httpclient.x の HTTP 取得、iperf の
-クライアント／サーバー動作、sntp.x の SNTP 時刻取得（UDP）を
-確認しています。実機でも、X68000Z および X68000Z XVI "X EMULATER" に
-x68kzremotedrv（Raspberry Pi Pico W によるリモートドライブ）を
-組み合わせた構成で、httpclient.x の HTTP 取得（名前解決を含む）と
-sntp.x の SNTP 時刻取得を確認しています。また、X68000Z XVI "X EMULATER" の純正の Windows とのファイル共有機能でも、httpclient.x の HTTP 取得と sntp.x の SNTP 時刻取得を確認しています。拡張 TI 関数を実装した現行ドライバでは、TCPPACK の
-telnet.x についても、3環境すべてでセッションの完走（接続、エコーの
-やり取り、切断、プロンプトへの復帰まで）を確認しています。
-telnet.x beta3 についても同様に確認しています。nc.x（netcat-x68k）
-についても、3環境すべてで TCP（クライアント／待ち受け）と UDP の
-送受信を確認しています。
-WebXpressionPlus についても、3環境すべてで平文 HTTP のページ取得・
-表示（リンク先への遷移を含む）を確認しています。
-実機（X68000Z XVI）での iperf スループット実測レポートは
-[compat-check/IPERF-REPORT.md](compat-check/IPERF-REPORT.md) にあります。
+手順:
 
-## ダウンロード
-
-ビルド済みパッケージ（`hfsnet.x` と `hfsnethost.py` をまとめた zip）は
-[Releases](https://github.com/renatus-novus-x/hfsnet/releases) から
-ダウンロードできます。
-
-## ファイルプロトコル
-
-共有フォルダに置くファイルは2つだけです。どちらもバイナリ形式、
-多バイト値はビッグエンディアン（ネットワークバイトオーダ）です。
-
-- `HFSREQ.BIN` — ゲスト → ホスト の要求（ゲストが書く）
-- `HFSRES.BIN` — ホスト → ゲスト の応答（ホストが書く。一時名で書いてから
-  リネームして差し替えるので、ゲストが書きかけを読むことはありません）
-
-### 要求（HFSREQ.BIN、ヘッダ 20 バイト＋ペイロード）
-
-| オフセット | サイズ | 内容 |
-| --- | --- | --- |
-| 0 | 2 | マジック `'H' 'N'` |
-| 2 | 1 | 操作コード（下表） |
-| 3 | 1 | ソケット番号（ゲスト側のスロット 0〜31） |
-| 4 | 4 | 通し番号（ゲストが要求ごとに増やす。応答の照合に使う） |
-| 8 | 2 | ポート番号（CONNECT / BIND で使用。UDP の SEND では宛先ポート） |
-| 10 | 2 | 補助引数（OPEN のソケット種別（0 = SOCK_STREAM、1 = SOCK_DGRAM）、LISTEN の backlog、ACCEPT の受け入れ先スロット、SHUTDOWN の how） |
-| 12 | 4 | IPv4 アドレス（CONNECT / BIND で使用。UDP の SEND では宛先アドレス） |
-| 16 | 4 | ペイロード長（RECV では受け取り上限） |
-| 20 | 可変 | ペイロード（SEND のデータ、RESOLVE のホスト名など） |
-
-### 応答（HFSRES.BIN、ヘッダ 24 バイト＋ペイロード）
-
-| オフセット | サイズ | 内容 |
-| --- | --- | --- |
-| 0 | 2 | マジック `'H' 'N'` |
-| 2 | 1 | 操作コード（要求の写し） |
-| 3 | 1 | ソケット番号（要求の写し） |
-| 4 | 4 | 通し番号（要求の写し） |
-| 8 | 4 | 結果（操作ごとに意味が違う。下表） |
-| 12 | 2 | ポート番号（ACCEPT で相手のポート、UDP の RECV では送信元ポート） |
-| 14 | 2 | 予約（0） |
-| 16 | 4 | ペイロード長（STATE では受信可能バイト数） |
-| 20 | 4 | 補助値（STATE では状態コード、RESOLVE では IPv4 アドレス、ACCEPT では相手の IPv4 アドレス、UDP の RECV では送信元 IPv4 アドレス） |
-| 24 | 可変 | ペイロード（RECV のデータ） |
-
-### 操作コードと結果の意味
-
-| コード | 名前 | 結果（result）の意味 |
-| --- | --- | --- |
-| 1 | OPEN | 0 = 成功、-1 = 失敗 |
-| 2 | CLOSE | 0 = 成功 |
-| 3 | CONNECT | 0 = 接続完了、1 = 接続中、-1 = 失敗 |
-| 4 | SEND | 送信できたバイト数、-2 = 今は送れない、-1 = 失敗 |
-| 5 | RECV | 受信したバイト数、0 = 相手が閉じた（EOF）、-2 = まだデータが無い、-1 = 失敗 |
-| 6 | STATE | 状態コード（下表）。len = 受信可能バイト数、aux = 送信可能バイト数（近似） |
-| 7 | RESOLVE | 0 = 成功（aux に IPv4 アドレス）、-1 = 失敗 |
-| 8 | BIND | 0 = 成功、-1 = 失敗 |
-| 9 | LISTEN | 0 = 成功、-1 = 失敗 |
-| 10 | ACCEPT | 0 = 成功、-2 = まだ接続が来ていない、-1 = 失敗 |
-| 11 | SHUTDOWN | 0 = 成功、-1 = 失敗。how（補助引数）: 0 = 受信側、1 = 送信側、2 = 両方 |
-
-状態コード: 0 CLOSED / 1 LISTEN / 2 SYN_SENT / 3 SYN_RECEIVED /
-4 ESTABLISHED / 5 CLOSE_WAIT / 6 FIN_WAIT / 7 TIME_WAIT / 8 CLOSING
-
-### 同期の約束
-
-- 同時に処理中の要求は1つだけです（Human68k のアプリは基本的に
-  1つの流れでドライバを呼ぶため、これで足ります）
-- ゲストは要求を書いて閉じてから、応答の通し番号が自分のものと一致するまで
-  応答ファイルを開き直し続けます
-- ホストは、通し番号が前回処理したものと違う要求だけを処理します。
-  書きかけの要求（ヘッダの長さと実ファイル長が合わないもの）は読み直します
-
-## ゲスト側ドライバが実装する TI 関数
-
-番号は計測技研 tcpipdrv.h の関数番号表（`_TI_` の並び順）に従います。
-
-実装済み: get_version / socket / bind / listen / accept / connect /
-read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
-getsockname / getpeername / sockkick / usesock / recvline / sendline /
-rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
-psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname
-
-ポインタを返す名前引き関数（gethostbyaddr / getnetbyname /
-getnetbyaddr / getservbyname / getservbyport / getprotobyname /
-getprotobynumber）は、引けない場合に -1 ではなく NULL を返します。
-それ以外の未実装関数は -1 を返します。制限事項:
-
-- 対応するソケット種別は TCP（SOCK_STREAM）と UDP（SOCK_DGRAM）です。
-  RAW は socket() が -1 を返します
-- ICMP は非対応です。ping.x は ICMP（インターネット制御メッセージ・
-  プロトコル）を使うため生ソケット（SOCK_RAW）で開くのですが、本ドライバは
-  TCP / UDP のみ対応で、生ソケットの socket() には -1 を返します。
-  TCP と UDP のみの対応でも、実用上はそれなりに使えます
-- sendto / recvfrom のアドレス指定は UDP では有効です
-  （TCP では接続済みソケットとして扱います）
-- MSG_PEEK などの flags は無視します
-- getsockname は bind / connect で確定した実際のローカル側アドレスと
-ポートを返します（どちらもしていない場合は 0.0.0.0:0）
-
-ドライバの置き場所（メモリ常駐の入口）は、実在の inetd.x 互換ドライバ
-（yunkya2 氏の joynetd など）と同じ作法です。プログラムイメージの先頭に
-`"TCP/IP"` の署名を置き、その直後（先頭から8バイト目）が入口で、
-関数番号を D0、引数配列へのポインタを A0 に入れて呼ばれ、結果が D0 に返ります。
-ソケットの状態構造体（usock 配列）は sock_top で公開し、libsocket が
-ノンブロッキング指定のフラグを直接読み書きする約束にも合わせています。
-
-## ビルド
-
-ゲスト側（elf2x68k を使用）:
-
-```sh
-cd guest
-export PATH=<elf2x68k の bin ディレクトリ>:$PATH
-make        # hfsnet.x ができる
-```
-
-ホスト側はビルド不要です。
-
-## 使い方
-
-1. 共有用フォルダを1つ作り（例: PC 側の `hfsnet-share`）、
-   エミュレータの HFS などでゲストのドライブとして接続する
-   （書き込み許可で接続すること）
-2. ホスト側で相方を起動する:
-   `python3 host/hfsnethost.py <共有フォルダのパス>`
+1. [Releases](https://github.com/renatus-novus-x/hfsnet/releases) から、
+   使う OS の ZIP（Windows / Linux / macOS）をダウンロードして展開する
+2. ホスト側アプリを起動する
+   - GUI 版（推奨）: `hfsnet-host` を起動し、エミュレータが使っている
+     共有フォルダ（XEiJ の HFS フォルダ、WebX68k の HostFS フォルダ）を
+     選んで「開始」を押す
+   - Python 版: `python3 hfsnethost.py <共有フォルダのパス>`
+     （Python 3、標準ライブラリのみ。ICMP は扱わないので、
+     ping.x を使う場合は GUI 版を使ってください）
 3. ゲスト側でドライバを常駐させる（フォルダのゲスト側パスを指定）:
    `hfsnet.x C:\HFSNET`
-4. あとは libsocket を使うアプリ（elf2x68k サンプルの httpclient.x など）が
-   そのまま通信できます
+4. あとは inetd.x 互換 API を使うアプリ（elf2x68k の libsocket を使う
+   httpclient.x など）がそのまま通信できます
 
 ドライバは再起動しなくても常駐解除できます。フォルダの代わりに
 `/r` を指定します（`-r` でも同じです）:
@@ -227,6 +107,23 @@ make        # hfsnet.x ができる
   `hfsnet: cannot remove: N socket(s) in use.` と表示して解除を拒否します
 - ネットワークアプリを実行している最中は解除しないでください
   （アプリ側がドライバの入口を覚えている場合があるため）
+
+### 動作確認済みの環境
+
+XEiJ（HFS）、XM6 TypeG（Windrv）、WebX68k（HostFS）の3環境で、
+httpclient.x の HTTP 取得、iperf のクライアント／サーバー動作、
+sntp.x の SNTP 時刻取得（UDP）、telnet.x と telnet.x beta3 の
+セッション完走、nc.x の TCP（クライアント／待ち受け）と UDP の
+送受信、WebXpressionPlus の平文 HTTP のページ取得・表示を
+確認しています。
+
+実機でも、X68000Z および X68000Z XVI "X EMULATER" に
+x68kzremotedrv（Raspberry Pi Pico W によるリモートドライブ）を
+組み合わせた構成と、X68000Z XVI の純正の Windows とのファイル共有
+機能で、httpclient.x の HTTP 取得（名前解決を含む）と sntp.x の
+SNTP 時刻取得を確認しています。実機（X68000Z XVI）での iperf
+スループット実測レポートは
+[compat-check/IPERF-REPORT.md](compat-check/IPERF-REPORT.md) にあります。
 
 ## 既知の限界
 
@@ -241,6 +138,20 @@ make        # hfsnet.x ができる
   たどるための DOS 呼び出し）が、この種のドライブでは通らないためです。
   XEiJ、XM6 TypeG、WebX68k では、保存先をフロッピーや HDD のような
   実ドライブにすると取得できます
+
+## 仕組みと技術詳細
+
+- ゲスト側: 常駐ドライバ `hfsnet.x`（elf2x68k 製）。アプリからの TI 呼び出しを
+  共有フォルダ内の要求ファイル／応答ファイルのやり取りに翻訳します
+- ホスト側: GUI 版アプリ `hfsnet-host`、またはコンソールアプリ
+  `hfsnethost.py`（Python 3、標準ライブラリのみ）。要求ファイルを見張り、
+  実際のソケットを操作して応答ファイルに結果を書きます
+
+受信の通知は割り込みではなく、ドライバが応答ファイルを定期的に開き直す
+ポーリングで実現しています（ブロッキング呼び出しはドライバ内部のループで待ちます）。
+
+ファイルプロトコルの仕様、ドライバが実装する TI 関数の一覧、ビルド方法は
+[技術詳細（docs/TECHNICAL.md）](docs/TECHNICAL.md) にあります。
 
 ## ライセンス
 
