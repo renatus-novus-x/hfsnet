@@ -121,7 +121,7 @@ at the cost of higher CPU usage on the host.
 - Python version: `python3 hfsnethost.py <shared folder path> <ms>`
 
 Throughput and CPU measurements for each interval, taken with iperf
-on XEiJ, are recorded in [POLL-BENCH.md](compat-check/POLL-BENCH.md).
+on XEiJ, are recorded in [POLL-BENCH.en.md](compat-check/POLL-BENCH.en.md).
 
 ### Verified environments
 

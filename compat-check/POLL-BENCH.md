@@ -1,5 +1,7 @@
 # ポーリング間隔と iperf スループットの測定
 
+[English](POLL-BENCH.en.md)
+
 2026-11-22〜23、XEiJ リグ（:95）で測定。ホストは Python 版
 `host/hfsnethost.py`（第2引数で監視間隔を指定、今回の測定用に追加）。
 ゲストは IPERF.X（自作の最小 iperf、送受信とも 10 秒・64KB バッファ）、
