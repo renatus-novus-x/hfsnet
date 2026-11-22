@@ -66,6 +66,7 @@ enum {
 #define OP_LISTEN   9
 #define OP_ACCEPT   10
 #define OP_SHUTDOWN 11
+#define OP_HOSTINFO 12
 
 /* sockmode のモード値 (FCT socket.h) */
 #define SOCK_BINARY     0       /* 生データのまま */
@@ -170,6 +171,7 @@ static char path_req[160];
 static char path_res[160];
 
 static unsigned long rpc_seq;
+static long rpc_timeout = RPC_TIMEOUT;  /* 応答待ちの上限 (通常は RPC_TIMEOUT) */
 static unsigned char reqbuf[20 + MAXDATA];
 static unsigned char resbuf[24 + MAXDATA];
 
@@ -305,7 +307,7 @@ static int rpc(int op, int sock, unsigned short port, unsigned short arg,
             }
         }
         _dos_change_pr();
-        if (elapsed100(t0, now100()) > RPC_TIMEOUT)
+        if (elapsed100(t0, now100()) > rpc_timeout)
             return -1;
     }
 }
@@ -1292,8 +1294,38 @@ int main(int argc, char *argv[])
     _dos_close(h);
     _dos_delete(probe);
 
-    printf("hfsnet: installed (version %s, folder = %s)\r\n",
-           HFSNET_VERSION, dir);
+    /* ホスト側アプリの応答を一度だけ確認する。応答があり、ホストが
+       自分の IP アドレスを返してきたらそれを表示する。応答自体が
+       なければ、ホスト側アプリの起動を促す。旧いホストは
+       OP_HOSTINFO を知らず result=-1 で応答するので、その場合は
+       追加の行を出さない (応答があったことは分かるため)。
+       確認の前に応答ファイルを消しておく。前回の応答が残っていると、
+       通し番号が偶然一致したときにホスト不在でも「応答あり」と
+       誤判定してしまうため */
+    {
+        struct resinfo res;
+        long saved_timeout = rpc_timeout;
+        int r;
+        _dos_delete(path_res);
+        /* 通し番号を現在時刻で種付けする。ホストは通し番号が前回と
+           同じ要求を処理しないため、種付けしないと、前回の常駐時に
+           残った要求ファイルと番号が衝突して応答が返らない */
+        rpc_seq = (unsigned long)now100();
+        rpc_timeout = 500;              /* 常駐時の確認は5秒だけ待つ */
+        r = rpc(OP_HOSTINFO, 0, 0, 0, 0, 0, NULL, 0, &res, NULL);
+        rpc_timeout = saved_timeout;
+        printf("hfsnet: installed (version %s, folder = %s)\r\n",
+               HFSNET_VERSION, dir);
+        if (r == 0 && res.result == 0 && res.aux != 0) {
+            unsigned long ip = res.aux;
+            printf("hfsnet: host IP address: %lu.%lu.%lu.%lu\r\n",
+                   (ip >> 24) & 0xff, (ip >> 16) & 0xff,
+                   (ip >> 8) & 0xff, ip & 0xff);
+        } else if (r != 0) {
+            printf("hfsnet: no host application. "
+                   "Please start the host application.\r\n");
+        }
+    }
     fflush(stdout);
 
     _dos_keeppr(_HEND - (int)&tcpip_magic, 0);
