@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071a3a"/><stop offset="1" stop-color="#020d29"/></linearGradient>
+<linearGradient id="folder" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d8bde" stop-opacity=".46"/><stop offset="1" stop-color="#0b3975" stop-opacity=".24"/></linearGradient>
+<linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38b7fb" stop-opacity=".78"/><stop offset="1" stop-color="#1466ae" stop-opacity=".52"/></linearGradient>
+<linearGradient id="cyan" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00f5e5"/><stop offset=".55" stop-color="#00e8e9"/><stop offset="1" stop-color="#009eff"/></linearGradient>
+</defs>
+<rect width="1024" height="1024" rx="140" fill="url(#bg)"/>
+<!-- faint HFS folders, behind the H -->
+<path d="M503 245 L527 171 Q533 150 555 150 H672 Q690 150 700 168 L722 202 H832 Q866 202 866 236 V447 Q866 475 838 475 H502 Z" fill="url(#folder)" stroke="url(#stroke)" stroke-width="15" stroke-linejoin="round"/>
+<path d="M416 280 Q416 255 443 255 H586 Q602 255 614 275 L630 289 H751 Q783 289 783 320 V511 Q783 538 756 538 H416 Z" fill="url(#folder)" stroke="url(#stroke)" stroke-width="15" stroke-linejoin="round"/>
+<!-- network H -->
+<path d="M302 274 V594 M608 274 V594 M302 430 H608" fill="none" stroke="url(#cyan)" stroke-width="43" stroke-linecap="round" stroke-linejoin="round"/>
+<g fill="url(#cyan)"><circle cx="302" cy="274" r="60"/><circle cx="608" cy="274" r="60"/><circle cx="302" cy="594" r="60"/><circle cx="608" cy="594" r="60"/><circle cx="455" cy="430" r="55"/></g>
+<text x="512" y="854" font-family="DejaVu Sans" font-size="165" font-weight="bold" text-anchor="middle" letter-spacing="-7" fill="#ffffff">hfsnet</text>
+</svg>
