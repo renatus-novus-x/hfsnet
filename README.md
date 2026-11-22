@@ -2,7 +2,7 @@
 
 <img src="assets/icons/hfsnet_256x256.png" width="96" align="left" alt="hfsnet アイコン">
 
-# hfsnet — 共有フォルダ経由の inetd.x 互換ドライバ
+# hfsnet - 共有フォルダ経由の inetd.x 互換ドライバ
 
 Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォルダ経由）
 

@@ -2,7 +2,7 @@
 
 <img src="assets/icons/hfsnet_256x256.png" width="96" align="left" alt="hfsnet icon">
 
-# hfsnet — an inetd.x-compatible driver over a shared folder
+# hfsnet - an inetd.x-compatible driver over a shared folder
 
 inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
 
