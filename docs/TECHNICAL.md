@@ -81,7 +81,21 @@ read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
 getsockname / getpeername / sockkick / usesock / recvline / sendline /
 rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
 psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname /
-get_MIB
+get_MIB / add_arp_table / del_arp_table / search_arp_table /
+get_arp_table_top / arp_request / get_iface_list / get_new_iface /
+link_new_iface / rt_top / rt_lookup / rt_lookupb / rt_drop / rt_add /
+dns_add / dns_drop / dns_get / set_domain_name / get_domain_name / rip
+
+管理系（iface / 経路 / DNS / ARP / RIP）は、実通信がホスト側の
+スタックにあるため、表示と設定のための台帳として実装しています。
+インターフェースは lp0（127.0.0.1）と hf0（ホストの IP アドレス、
+常駐時の HOSTINFO 応答で取得。ネットマスクはクラス別デフォルト）
+の2つで、ifconfig / netstat -i / netstat -r が使えます。経路は
+デフォルト・hf0 のサブネット・127.0.0.0/8 の3件だけを返します。
+inetdconf のデフォルトルータ・DNS サーバ・ドメイン名・RIP は
+ゲスト内に保持され表示に反映されますが、実通信には影響しません。
+ARP テーブルは持ちません（get_arp_table_top は17本の空バケツ配列
+へのポインタを返す、という ABI の約束どおりにします）。
 
 ポインタを返す名前引き関数（gethostbyaddr / getnetbyname /
 getnetbyaddr / getservbyname / getservbyport / getprotobyname /

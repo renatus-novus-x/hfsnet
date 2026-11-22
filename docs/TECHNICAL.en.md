@@ -84,7 +84,23 @@ read_s / write_s / recvfrom / sendto / close_s / shutdown / socklen /
 getsockname / getpeername / sockkick / usesock / recvline / sendline /
 rrecvchar / recvchar / usflush / seteol / sockmode / setflush /
 psocket / sockerr / sockstate / sock_top / ntoa_sock / gethostbyname /
-get_MIB
+get_MIB / add_arp_table / del_arp_table / search_arp_table /
+get_arp_table_top / arp_request / get_iface_list / get_new_iface /
+link_new_iface / rt_top / rt_lookup / rt_lookupb / rt_drop / rt_add /
+dns_add / dns_drop / dns_get / set_domain_name / get_domain_name / rip
+
+The management functions (interfaces / routes / DNS / ARP / RIP) are
+implemented as a display-and-settings ledger, because the actual
+traffic lives in the host's stack. There are two interfaces: lp0
+(127.0.0.1) and hf0 (the host's IP address, learned from the HOSTINFO
+reply at install time; its netmask is the classful default), which
+makes ifconfig and netstat -i / -r work. Only three routes are
+reported: the default route, hf0's subnet, and 127.0.0.0/8.
+inetdconf's default router, DNS servers, domain name, and RIP flag
+are kept guest-side and reflected in its display, but they do not
+affect actual traffic. There is no ARP table (get_arp_table_top
+returns a pointer to an array of 17 empty buckets, as the ABI
+requires).
 
 The pointer-returning lookup functions (gethostbyaddr /
 getnetbyname / getnetbyaddr / getservbyname / getservbyport /

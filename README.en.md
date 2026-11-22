@@ -144,6 +144,11 @@ sntp.x. A throughput report for iperf measured on real hardware
   drive. On XEiJ, XM6 TypeG, and WebX68k, choosing a real drive
   such as a floppy or a hard disk as the destination lets the get
   succeed
+- The displays of ifconfig.x / netstat.x / inetdconf.x / arp.x
+  (TCPPACK) work. Settings made on the guest side (addresses, the
+  default router, DNS servers, and so on) are kept for display
+  purposes only: the actual traffic is handled by the host's stack,
+  so they do not affect communication itself
 
 ## How it works / technical details
 
