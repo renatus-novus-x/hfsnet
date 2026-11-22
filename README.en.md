@@ -40,7 +40,8 @@ such as XM6 TypeG's **Windrv** or the X68000Z's file sharing feature.
 
 ## In action
 
-All of these were recorded with XEiJ and the GUI host.
+All of these were recorded with XEiJ and the GUI host (click an image to
+view it at full size).
 
 | ping.x running (left: guest, right: host side; pinging www.google.com and receiving replies) |
 | :--- |
