@@ -122,6 +122,8 @@ at the cost of higher CPU usage on the host.
   (the setting is saved). You can also pass `--poll <ms>` at startup
 - Python version: `python3 hfsnethost.py <shared folder path> <ms>`
 
+![Polling interval vs. throughput and idle CPU](compat-check/poll-graph.en.png)
+
 Throughput and CPU measurements for each interval, taken with iperf
 on XEiJ, are recorded in [POLL-BENCH.en.md](compat-check/POLL-BENCH.en.md).
 

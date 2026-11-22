@@ -115,6 +115,8 @@ XM6 TypeG の **Windrv** や X68000Z のファイル共有機能など、双方�
   （設定は保存されます）。起動時に `--poll <ミリ秒>` でも指定できます
 - Python 版: `python3 hfsnethost.py <共有フォルダのパス> <ミリ秒>`
 
+![ポーリング間隔と速度・アイドル時 CPU](compat-check/poll-graph.png)
+
 XEiJ で iperf を使って間隔ごとの速度と CPU 使用率を測った記録が
 [POLL-BENCH.md](compat-check/POLL-BENCH.md) にあります。
 
