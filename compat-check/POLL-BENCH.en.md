@@ -28,6 +28,8 @@ the outage) and poll-bench-results.txt (the 5/2/1/0 ms runs, re-measured).
   session before the outage, was 90.1 KB/s. Run-to-run variation
   between sessions is about ±10%.
 
+![Polling interval vs. throughput and idle CPU](poll-graph.en.png)
+
 ## Reading
 
 - Shorter intervals are reliably faster: 10 ms → 0 ms gives +36% send
