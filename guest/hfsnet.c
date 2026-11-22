@@ -1128,6 +1128,47 @@ static int iface_update_noop(struct iface_h *p)
     return 0;
 }
 
+/* ifconfig の down が呼ぶ停止処理。台帳なのでフラグを落とすだけ */
+static int iface_stop(struct iface_h *p)
+{
+    p->flag &= ~(IFACE_UP | IFACE_RUNNING);
+    return 0;
+}
+
+/* 無条件に呼ばれる側のポインタは空関数で埋める。ただし
+   fprint / sprint / fscan / sscan は「その形式のハードウェア
+   アドレスを扱えるか」を示す能力ポインタで、呼び出し側は
+   NULL かどうかを確認してから使う (arp.x の -s が sscan を
+   確認する)。hfsnet はハードウェアアドレスを持たないので、
+   この4つは NULL のままにして「扱えない」と答えるのが正しい */
+static int iface_send_noop(struct iface_h *p, void *a, long b,
+                           int c, int d, int e, int f)
+{
+    (void)p; (void)a; (void)b; (void)c; (void)d; (void)e; (void)f;
+    return 0;
+}
+static int iface_output_noop(struct iface_h *p, char *a, char *b,
+                             long c, void *d)
+{
+    (void)p; (void)a; (void)b; (void)c; (void)d;
+    return 0;
+}
+static void iface_input_noop(struct iface_h *p, void *a)
+{
+    (void)p; (void)a;
+}
+
+static void iface_fill_fptrs(struct iface_h *p)
+{
+    p->config = iface_update_noop;
+    p->stop = iface_stop;
+    p->update = iface_update_noop;
+    p->send = iface_send_noop;
+    p->output = iface_output_noop;
+    p->input = iface_input_noop;
+    /* fprint / sprint / fscan / sscan は NULL のまま */
+}
+
 /* ホスト IP を hf0 とサブネット経路へ反映する */
 static void apply_host_ip(unsigned long ip)
 {
@@ -1156,7 +1197,7 @@ static void mgmt_init(unsigned long host_ip)
     memset(&if_lp0, 0, sizeof(if_lp0));
     if_lp0.next = &if_hf0;
     if_lp0.name = iface_name_lp0;
-    if_lp0.update = iface_update_noop;
+    iface_fill_fptrs(&if_lp0);
     if_lp0.mtu = 16436;
     if_lp0.my_ip_addr = 0x7f000001L;
     if_lp0.net_mask = (long)0xff000000UL;
@@ -1165,7 +1206,7 @@ static void mgmt_init(unsigned long host_ip)
 
     memset(&if_hf0, 0, sizeof(if_hf0));
     if_hf0.name = iface_name_hf0;
-    if_hf0.update = iface_update_noop;
+    iface_fill_fptrs(&if_hf0);
     if_hf0.mtu = 1500;
     if_hf0.flag = IFACE_UP | IFACE_RUNNING | IFACE_NOARP | IFACE_BROAD;
 
