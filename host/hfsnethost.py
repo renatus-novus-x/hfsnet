@@ -20,9 +20,10 @@ RES_HDR = struct.Struct(">2sBBIiHHII")  # 24 バイト
 OP_OPEN, OP_CLOSE, OP_CONNECT, OP_SEND, OP_RECV = 1, 2, 3, 4, 5
 OP_STATE, OP_RESOLVE, OP_BIND, OP_LISTEN, OP_ACCEPT = 6, 7, 8, 9, 10
 OP_SHUTDOWN = 11
+OP_HOSTINFO = 12
 OP_NAMES = {1: "OPEN", 2: "CLOSE", 3: "CONNECT", 4: "SEND", 5: "RECV",
             6: "STATE", 7: "RESOLVE", 8: "BIND", 9: "LISTEN", 10: "ACCEPT",
-            11: "SHUTDOWN"}
+            11: "SHUTDOWN", 12: "HOSTINFO"}
 
 ST_CLOSED, ST_LISTEN, ST_SYN_SENT, ST_SYN_RECEIVED = 0, 1, 2, 3
 ST_ESTABLISHED, ST_CLOSE_WAIT = 4, 5
@@ -265,6 +266,30 @@ class Host:
             return -1, 0, 0, b""
         return 0, 0, struct.unpack(">I", socket.inet_aton(ip))[0], b""
 
+    def op_hostinfo(self):
+        # ゲストの常駐時表示用に、このホストの代表 IPv4 を aux で返す。
+        # 外向きの経路で使われるアドレスを UDP connect の要領で調べる
+        # (connect だけでは実際には何も送られない)。取れなければ 0。
+        ip = None
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        except OSError:
+            ip = None
+        finally:
+            s.close()
+        if ip is None:
+            try:
+                cand = socket.gethostbyname(socket.gethostname())
+                if not cand.startswith("127."):
+                    ip = cand
+            except OSError:
+                ip = None
+        if ip is None:
+            return 0, 0, 0, b""
+        return 0, 0, struct.unpack(">I", socket.inet_aton(ip))[0], b""
+
     def op_bind(self, idx, addr, port):
         sl = self.slots[idx]
         if sl.sock is None:
@@ -339,6 +364,8 @@ class Host:
             result, rlen, aux, rpayload, extra_port = self.op_accept(idx, arg)
         elif op == OP_SHUTDOWN:
             result, rlen, aux, rpayload = self.op_shutdown(idx, arg)
+        elif op == OP_HOSTINFO:
+            result, rlen, aux, rpayload = self.op_hostinfo()
         else:
             result, rlen, aux, rpayload = -1, 0, 0, b""
 

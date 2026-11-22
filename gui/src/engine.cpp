@@ -13,11 +13,11 @@ namespace {
 enum {
     OP_OPEN = 1, OP_CLOSE = 2, OP_CONNECT = 3, OP_SEND = 4, OP_RECV = 5,
     OP_STATE = 6, OP_RESOLVE = 7, OP_BIND = 8, OP_LISTEN = 9,
-    OP_ACCEPT = 10, OP_SHUTDOWN = 11
+    OP_ACCEPT = 10, OP_SHUTDOWN = 11, OP_HOSTINFO = 12
 };
 const char *OP_NAMES[] = {"",    "OPEN",  "CLOSE", "CONNECT", "SEND",
                           "RECV", "STATE", "RESOLVE", "BIND",  "LISTEN",
-                          "ACCEPT", "SHUTDOWN"};
+                          "ACCEPT", "SHUTDOWN", "HOSTINFO"};
 
 enum { ST_CLOSED = 0, ST_LISTEN = 1, ST_SYN_SENT = 2, ST_SYN_RECEIVED = 3,
        ST_ESTABLISHED = 4, ST_CLOSE_WAIT = 5 };
@@ -592,6 +592,11 @@ void Engine::process(const std::vector<uint8_t> &raw)
                 slot_info_[newidx].peer_port = pport;
             }
         }
+    } else if (op == OP_HOSTINFO) {
+        // ゲストの常駐時表示用に、このホストの代表 IPv4 を aux で返す
+        // (8.8.8.8 へ送る場合に使われる送信元アドレス)
+        r.result = 0;
+        r.aux = plat::local_addr_for(0x08080808u);
     } else {
         r.result = -1;
     }
