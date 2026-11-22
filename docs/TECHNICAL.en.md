@@ -59,6 +59,7 @@ values are big-endian (network byte order).
 | 9 | LISTEN | 0 = success, -1 = failure |
 | 10 | ACCEPT | 0 = success, -2 = no connection yet, -1 = failure |
 | 11 | SHUTDOWN | 0 = success, -1 = failure. how (auxiliary argument): 0 = receive side, 1 = send side, 2 = both |
+| 12 | HOSTINFO | 0 = success (the host's primary IPv4 address in aux, or 0 if unavailable). Issued once by the guest driver at install time to check that the host application is responding and to display its IP address. Older hosts reply -1 as for any unknown operation code |
 
 State codes: 0 CLOSED / 1 LISTEN / 2 SYN_SENT / 3 SYN_RECEIVED /
 4 ESTABLISHED / 5 CLOSE_WAIT / 6 FIN_WAIT / 7 TIME_WAIT / 8 CLOSING

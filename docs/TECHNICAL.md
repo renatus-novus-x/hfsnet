@@ -58,6 +58,7 @@
 | 9 | LISTEN | 0 = 成功、-1 = 失敗 |
 | 10 | ACCEPT | 0 = 成功、-2 = まだ接続が来ていない、-1 = 失敗 |
 | 11 | SHUTDOWN | 0 = 成功、-1 = 失敗。how（補助引数）: 0 = 受信側、1 = 送信側、2 = 両方 |
+| 12 | HOSTINFO | 0 = 成功（aux にホストの代表 IPv4 アドレス、取れなければ 0）。ゲストドライバが常駐時に1回だけ発行し、ホストの応答確認と IP アドレス表示に使う。旧いホストは未知の操作コードとして -1 を返す |
 
 状態コード: 0 CLOSED / 1 LISTEN / 2 SYN_SENT / 3 SYN_RECEIVED /
 4 ESTABLISHED / 5 CLOSE_WAIT / 6 FIN_WAIT / 7 TIME_WAIT / 8 CLOSING
