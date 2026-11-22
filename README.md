@@ -42,38 +42,38 @@ XM6 TypeG の **Windrv** や X68000Z のファイル共有機能など、双方�
 ping.x の実行（左: ゲスト、右: ホスト側。www.google.com へ ping を打ち、
 応答が返る様子）:
 
-![ping.x の実行](ping-host.gif)
+![ping.x の実行](media/ping-host.gif)
 
 httpclient.x の実行（左: ゲスト、右: ホスト側 GUI 版ホスト）:
 
-![httpclient.x とホスト側](httpclient-host.gif)
+![httpclient.x とホスト側](media/httpclient-host.gif)
 
 iperf.x クライアントモード（左: ゲスト、右: ホスト側）:
 
-![iperf.x クライアントモード](iperf-client.gif)
+![iperf.x クライアントモード](media/iperf-client.gif)
 
 iperf.x サーバーモード（左: ゲスト、右: ホスト側。2倍速再生）:
 
-![iperf.x サーバーモード](iperf-server.gif)
+![iperf.x サーバーモード](media/iperf-server.gif)
 
 sntp.x の実行（左: ゲスト、右: ホスト側。UDP で SNTP サーバーから時刻を取得）:
 
-![sntp.x の実行](sntp-host.gif)
+![sntp.x の実行](media/sntp-host.gif)
 
 telnet.x の実行（左: ゲスト、右: ホスト側。TCPPACK の telnet クライアントで
 テストサーバーへ接続し、エコーのやり取りをして切断）:
 
-![telnet.x の実行](telnet-host.gif)
+![telnet.x の実行](media/telnet-host.gif)
 
 WebXpressionPlus の実行（左: ゲスト、右: ホスト側。Web ブラウザで
 テストページを取得・表示し、リンク先のページへ遷移）:
 
-![WebXpressionPlus の実行](webxpression-host.gif)
+![WebXpressionPlus の実行](media/webxpression-host.gif)
 
 nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコーサーバーへ
 接続して送受信し、相手の切断で終了してプロンプトへ復帰）:
 
-![nc.x の実行](nc-host.gif)
+![nc.x の実行](media/nc-host.gif)
 
 ## 導入方法
 

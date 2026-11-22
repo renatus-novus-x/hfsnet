@@ -45,41 +45,41 @@ All of these were recorded with XEiJ and the GUI host.
 ping.x running (left: guest, right: host side; pinging www.google.com
 and receiving replies):
 
-![ping.x running](ping-host.gif)
+![ping.x running](media/ping-host.gif)
 
 httpclient.x running (left: guest, right: the GUI host):
 
-![httpclient.x with the host side](httpclient-host.gif)
+![httpclient.x with the host side](media/httpclient-host.gif)
 
 iperf.x in client mode (left: guest, right: host side):
 
-![iperf.x in client mode](iperf-client.gif)
+![iperf.x in client mode](media/iperf-client.gif)
 
 iperf.x in server mode (left: guest, right: host side; played at 2x speed):
 
-![iperf.x in server mode](iperf-server.gif)
+![iperf.x in server mode](media/iperf-server.gif)
 
 sntp.x running (left: guest, right: host side; fetching the time from an
 SNTP server over UDP):
 
-![sntp.x running](sntp-host.gif)
+![sntp.x running](media/sntp-host.gif)
 
 telnet.x running (left: guest, right: host side; the TCPPACK telnet client
 connecting to a test server, exchanging echoes, and disconnecting):
 
-![telnet.x running](telnet-host.gif)
+![telnet.x running](media/telnet-host.gif)
 
 WebXpressionPlus running (left: guest, right: host side; a web browser
 fetching and displaying a test page, then following a link to a second
 page):
 
-![WebXpressionPlus running](webxpression-host.gif)
+![WebXpressionPlus running](media/webxpression-host.gif)
 
 nc.x running (left: guest, right: host side; netcat-x68k connecting to an
 echo server, exchanging data, then exiting back to the prompt when the
 peer disconnects):
 
-![nc.x running](nc-host.gif)
+![nc.x running](media/nc-host.gif)
 
 ## Getting started
 
