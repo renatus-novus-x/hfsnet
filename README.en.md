@@ -145,10 +145,36 @@ sntp.x. A throughput report for iperf measured on real hardware
   such as a floppy or a hard disk as the destination lets the get
   succeed
 - The displays of ifconfig.x / netstat.x / inetdconf.x / arp.x
-  (TCPPACK) work. Settings made on the guest side (addresses, the
-  default router, DNS servers, and so on) are kept for display
-  purposes only: the actual traffic is handled by the host's stack,
-  so they do not affect communication itself
+  (TCPPACK) work. However, what a guest-side setting means here is
+  fundamentally different from a setting on a real X68000 setup
+  (explained in the next section)
+
+### About guest-side settings
+
+In the original TCPPACK setup, the whole TCP/IP stack lives in
+the driver (inetd.x) inside the X68000, and an Ethernet driver
+drives the real network card. In that setup, the IP address and
+netmask assigned to an interface with ifconfig.x, and the
+default router and DNS servers set with inetdconf.x, directly
+decide how communication behaves.
+
+In hfsnet, the stack lives in the host application, and the
+guest driver only relays the applications' requests to the
+host. So even if you set an address, a netmask, a default
+router, or DNS servers on the guest side with ifconfig.x or
+inetdconf.x, those values are only kept so the management
+tools can display and read them back; they do not affect the
+actual communication. For example, changing the address of
+hf0 does not change the source address of your traffic, which
+stays the host's, and name resolution is done by the host
+using the host's own settings.
+
+To change anything that affects communication, look at the
+host side (the PC's network settings and the host
+application's environment).
+
+The interface names are hf0 for the hfsnet port and lp0 for
+loopback (traffic addressed to the machine itself).
 
 ## How it works / technical details
 
