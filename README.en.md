@@ -42,6 +42,11 @@ such as XM6 TypeG's **Windrv** or the X68000Z's file sharing feature.
 
 All of these were recorded with XEiJ and the GUI host.
 
+ping.x running (left: guest, right: host side; pinging www.google.com
+and receiving replies):
+
+![ping.x running](ping-host.gif)
+
 httpclient.x running (left: guest, right: the GUI host):
 
 ![httpclient.x with the host side](httpclient-host.gif)

@@ -39,6 +39,11 @@ XM6 TypeG の **Windrv** や X68000Z のファイル共有機能など、双方�
 
 いずれも XEiJ と GUI 版ホストでの実行です。
 
+ping.x の実行（左: ゲスト、右: ホスト側。www.google.com へ ping を打ち、
+応答が返る様子）:
+
+![ping.x の実行](ping-host.gif)
+
 httpclient.x の実行（左: ゲスト、右: ホスト側 GUI 版ホスト）:
 
 ![httpclient.x とホスト側](httpclient-host.gif)
