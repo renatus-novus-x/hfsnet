@@ -15,7 +15,7 @@ Human68k 向け inetd.x 互換 TCP/IP ドライバ（HostFS / HFS 共有フォ�
 ## これは何か
 
 hfsnet は、X68000 / Human68k に TCP/IP 通信を持ち込むためのドライバです。
-共有フォルダ機能（XEiJ の **HFS**、WebX68k の **HostFS**）
+共有フォルダ機能（XEiJ の **HFS** 等）
 だけを使って、
 計測技研 **inetd.x 互換 API**（TCP/IP ドライバの呼び出し規約、いわゆる
 TI エントリ）を提供します。XEiJ と WebX68k に関しては、追加
