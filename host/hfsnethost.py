@@ -47,8 +47,9 @@ class Slot:
 
 
 class Host:
-    def __init__(self, folder):
+    def __init__(self, folder, poll_ms=10.0):
         self.folder = folder
+        self.poll_sec = max(poll_ms, 0.0) / 1000.0
         self.req_path = os.path.join(folder, "HFSREQ.BIN")
         self.res_path = os.path.join(folder, "HFSRES.BIN")
         self.tmp_path = os.path.join(folder, "HFSRES.TMP")
@@ -401,7 +402,8 @@ class Host:
             f.write(res)
 
     def run(self):
-        print(f"hfsnethost: watching {self.folder}", flush=True)
+        print(f"hfsnethost: watching {self.folder} "
+              f"(poll {self.poll_sec * 1000:g} ms)", flush=True)
         while True:
             try:
                 with open(self.req_path, "rb") as f:
@@ -419,19 +421,26 @@ class Host:
                         self.process(raw)
                     except Exception as e:  # 1件の失敗で止めない
                         print(f"error: {e}", flush=True)
-            time.sleep(0.01)
+            time.sleep(self.poll_sec)
 
 
 def main():
     if len(sys.argv) < 2:
-        print("usage: python3 hfsnethost.py <shared folder>")
+        print("usage: python3 hfsnethost.py <shared folder> [poll ms]")
         return 1
     folder = sys.argv[1]
     if not os.path.isdir(folder):
         print(f"not a folder: {folder}")
         return 1
+    poll_ms = 10.0
+    if len(sys.argv) >= 3:
+        try:
+            poll_ms = float(sys.argv[2])
+        except ValueError:
+            print(f"bad poll ms: {sys.argv[2]}")
+            return 1
     try:
-        Host(folder).run()
+        Host(folder, poll_ms).run()
     except KeyboardInterrupt:
         print("\nhfsnethost: bye")
     return 0
