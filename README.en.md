@@ -30,7 +30,7 @@ API then just work:
   measure throughput with `iperf.x`
 - Send and receive over TCP / UDP with `nc.x` (netcat-x68k)
 
-The mechanism is simple: a resident driver on the guest, `hfsnet.x`,
+The mechanism is simple: a resident driver on the Human68k side, `hfsnet.x`,
 translates TI calls from applications into file exchanges inside the
 shared folder, and an application on the host operates the real
 sockets. No emulator-specific features are used — only ordinary file
@@ -157,7 +157,7 @@ sntp.x. A throughput report for iperf measured on real hardware
 
 ## How it works / technical details
 
-- Guest side: a resident driver, `hfsnet.x` (built with elf2x68k). It
+- Human68k side: a resident driver, `hfsnet.x` (built with elf2x68k). It
   translates TI calls from applications into request/response file
   exchanges inside the shared folder
 - Host side: the GUI application `hfsnet-host`, or the console app
