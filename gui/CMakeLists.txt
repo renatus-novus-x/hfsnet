@@ -65,8 +65,14 @@ if(HFSNET_BUILD_GUI)
     endif()
     add_subdirectory(third_party/nativefiledialog-extended)
 
-    add_executable(hfsnet-host src/main.cpp ${ENGINE_SOURCES}
+    # WIN32: Windows では GUI サブシステムにし、起動時にコンソール
+    # ウィンドウが開かないようにする (他 OS では無視される)
+    add_executable(hfsnet-host WIN32 src/main.cpp ${ENGINE_SOURCES}
                                ${IMGUI_SOURCES})
+    if(WIN32)
+        # アプリケーションアイコンを exe のリソースに埋め込む
+        target_sources(hfsnet-host PRIVATE hfsnet.rc)
+    endif()
     target_include_directories(hfsnet-host PRIVATE
         src ${IMGUI_DIR} ${IMGUI_DIR}/backends)
     target_link_libraries(hfsnet-host PRIVATE glfw glew nfd)
@@ -85,6 +91,10 @@ if(WIN32)
             -static-libgcc -static-libstdc++)
     endif()
     if(MSVC)
+        if(HFSNET_BUILD_GUI)
+            # GUI サブシステムでも通常の main() から入れるようにする
+            target_link_options(hfsnet-host PRIVATE /ENTRY:mainCRTStartup)
+        endif()
         # ソース内の日本語文字列・コメントを正しく読むため
         target_compile_options(hfsnet-host PRIVATE /utf-8)
         target_compile_definitions(hfsnet-host PRIVATE
