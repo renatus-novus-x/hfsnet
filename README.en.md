@@ -1,16 +1,12 @@
 [English](README.en.md) | [日本語](README.md)
 
-<img src="assets/icons/hfsnet_256x256.png" width="96" align="left" alt="hfsnet icon">
-
-# hfsnet - an inetd.x-compatible driver over a shared folder
+# <img src="assets/icons/hfsnet_256x256.png" width="48" align="middle" alt="hfsnet icon"> hfsnet - an inetd.x-compatible driver over a shared folder
 
 inetd.x-compatible TCP/IP driver for Human68k over HostFS/HFS shared folders
 
 [![GUI host (macOS)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-macos.yml)
 [![GUI host (Ubuntu)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-ubuntu.yml)
 [![GUI host (Windows)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml/badge.svg)](https://github.com/renatus-novus-x/hfsnet/actions/workflows/gui-windows.yml)
-
-<br clear="left">
 
 ## What is this?
 
