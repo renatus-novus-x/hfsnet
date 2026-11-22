@@ -1,6 +1,6 @@
 # hfsnet iperf Throughput Measurements on the X68000Z XVI
 
-[日本語](IPERF-REPORT.md)
+[English](IPERF-REPORT.en.md) | [日本語](IPERF-REPORT.md)
 
 - Date: 2026-11-19
 - Setup: real X68000Z XVI "X EMULATER", hfsnet v0.4.0
@@ -24,7 +24,7 @@
 
 Reference (XEiJ emulator, measured 2026-11-17): send approx. 66,000 B/s (0.53 Mb/s), receive approx. 112,500 B/s (0.90 Mb/s).
 
-![Bar chart of iperf throughput](iperf-chart-realhw.png)
+![Bar chart of iperf throughput](iperf-chart-realhw.en.png)
 
 ## Observations
 
@@ -41,7 +41,7 @@ hfsnet passes API-level requests between the guest and the host through two file
 - **When sending**, each chunk (up to 2,048 bytes) the guest writes must be picked up by the host, sent over the socket, and answered through the response file before the guest can move on. The file round trip is synchronous, so the wire sits idle during the waits.
 - **When receiving**, incoming data arrives ahead of time and accumulates in the host OS's receive buffer. The host can answer the guest's RECV requests immediately from what has already arrived, and reception keeps progressing on the host side while the guest processes the previous chunk.
 
-![Diagram: why receiving is faster than sending](iperf-why-recv-faster.png)
+![Diagram: why receiving is faster than sending](iperf-why-recv-faster.en.png)
 
 ## Caveats
 

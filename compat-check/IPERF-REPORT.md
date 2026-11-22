@@ -1,6 +1,6 @@
 # hfsnet X68000Z XVI 上での iperf スループット測定報告
 
-[English](IPERF-REPORT.en.md)
+[English](IPERF-REPORT.en.md) | [日本語](IPERF-REPORT.md)
 
 - 測定日：2026-11-19
 - 対象：実機 X68000Z XVI "X EMULATER"、hfsnet v0.4.0
