@@ -120,6 +120,9 @@ at the cost of higher CPU usage on the host.
   (the setting is saved). You can also pass `--poll <ms>` at startup
 - Python version: `python3 hfsnethost.py <shared folder path> <ms>`
 
+Throughput and CPU measurements for each interval, taken with iperf
+on XEiJ, are recorded in [POLL-BENCH.md](compat-check/POLL-BENCH.md).
+
 ### Verified environments
 
 On each of XEiJ (HFS), XM6 TypeG (Windrv), and WebX68k (HostFS), the
