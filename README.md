@@ -82,7 +82,7 @@ nc.x の実行（左: ゲスト、右: ホスト側。netcat-x68k でエコー�
 
 1. [Releases](https://github.com/renatus-novus-x/hfsnet/releases) から、
    使う OS の ZIP（Windows / Linux / macOS）をダウンロードして展開する
-2. ホスト側アプリを起動する
+2. ホスト側アプリを起動する（GUI 版と Python 版のどちらか一方でよい）
    - GUI 版（推奨）: `hfsnet-host` を起動し、エミュレータが使っている
      共有フォルダ（XEiJ の HFS フォルダ、WebX68k の HostFS フォルダ）を
      選んで「開始」を押す

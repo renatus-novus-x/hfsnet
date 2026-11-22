@@ -89,7 +89,7 @@ Steps:
 1. Download the ZIP for your OS (Windows / Linux / macOS) from
    [Releases](https://github.com/renatus-novus-x/hfsnet/releases)
    and extract it
-2. Start the host-side application
+2. Start the host-side application (either the GUI host or the Python host — only one of them)
    - GUI host (recommended): launch `hfsnet-host`, select the shared
      folder the emulator uses (the HFS folder for XEiJ, the HostFS
      folder for WebX68k), and press Start
