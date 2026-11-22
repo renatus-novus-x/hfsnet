@@ -19,8 +19,8 @@ Human68k. No additional hardware, such as a network board, is needed:
 using only an emulator's shared-folder feature (XEiJ's **HFS**,
 WebX68k's **HostFS**), it provides a Keisoku Giken **inetd.x-compatible
 API** (the TCP/IP driver calling convention, the so-called TI entry).
-At present there is no other way to connect an X68000 to a network
-without additional hardware.
+For XEiJ and WebX68k, there is currently no other way to connect to
+a network without additional hardware.
 
 Existing communication applications that use the inetd.x-compatible
 API then just work:
