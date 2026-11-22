@@ -42,44 +42,37 @@ such as XM6 TypeG's **Windrv** or the X68000Z's file sharing feature.
 
 All of these were recorded with XEiJ and the GUI host.
 
-ping.x running (left: guest, right: host side; pinging www.google.com
-and receiving replies):
+| ping.x running (left: guest, right: host side; pinging www.google.com and receiving replies) |
+| --- |
+| <img src="media/ping-host.gif" width="1248" height="549" alt="ping.x running"> |
 
-![ping.x running](media/ping-host.gif)
+| httpclient.x running (left: guest, right: the GUI host) |
+| --- |
+| <img src="media/httpclient-host.gif" width="1248" height="702" alt="httpclient.x with the host side"> |
 
-httpclient.x running (left: guest, right: the GUI host):
+| iperf.x in client mode (left: guest, right: host side) |
+| --- |
+| <img src="media/iperf-client.gif" width="1248" height="702" alt="iperf.x in client mode"> |
 
-![httpclient.x with the host side](media/httpclient-host.gif)
+| iperf.x in server mode (left: guest, right: host side; played at 2x speed) |
+| --- |
+| <img src="media/iperf-server.gif" width="1248" height="702" alt="iperf.x in server mode"> |
 
-iperf.x in client mode (left: guest, right: host side):
+| sntp.x running (left: guest, right: host side; fetching the time from an SNTP server over UDP) |
+| --- |
+| <img src="media/sntp-host.gif" width="1248" height="702" alt="sntp.x running"> |
 
-![iperf.x in client mode](media/iperf-client.gif)
+| telnet.x running (left: guest, right: host side; the TCPPACK telnet client connecting to a test server, exchanging echoes, and disconnecting) |
+| --- |
+| <img src="media/telnet-host.gif" width="1248" height="702" alt="telnet.x running"> |
 
-iperf.x in server mode (left: guest, right: host side; played at 2x speed):
+| WebXpressionPlus running (left: guest, right: host side; a web browser fetching and displaying a test page, then following a link to a second page) |
+| --- |
+| <img src="media/webxpression-host.gif" width="1248" height="702" alt="WebXpressionPlus running"> |
 
-![iperf.x in server mode](media/iperf-server.gif)
-
-sntp.x running (left: guest, right: host side; fetching the time from an
-SNTP server over UDP):
-
-![sntp.x running](media/sntp-host.gif)
-
-telnet.x running (left: guest, right: host side; the TCPPACK telnet client
-connecting to a test server, exchanging echoes, and disconnecting):
-
-![telnet.x running](media/telnet-host.gif)
-
-WebXpressionPlus running (left: guest, right: host side; a web browser
-fetching and displaying a test page, then following a link to a second
-page):
-
-![WebXpressionPlus running](media/webxpression-host.gif)
-
-nc.x running (left: guest, right: host side; netcat-x68k connecting to an
-echo server, exchanging data, then exiting back to the prompt when the
-peer disconnects):
-
-![nc.x running](media/nc-host.gif)
+| nc.x running (left: guest, right: host side; netcat-x68k connecting to an echo server, exchanging data, then exiting back to the prompt when the peer disconnects) |
+| --- |
+| <img src="media/nc-host.gif" width="1248" height="702" alt="nc.x running"> |
 
 ## Getting started
 
