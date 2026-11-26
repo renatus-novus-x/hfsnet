@@ -145,6 +145,10 @@ sntp.x. A throughput report for iperf measured on real hardware
 (X68000Z XVI) is available in
 [compat-check/IPERF-REPORT.en.md](compat-check/IPERF-REPORT.en.md).
 
+hfsnet also works on ix68k, which has no Ethernet functionality, over
+the HOSTDRV shared folder. httpclient.x, iperf.x, and WebXpression
+Plus have been verified (iperf client at 0.77 Mb/s).
+
 ## Known limitations
 
 - Latency: every TI call becomes a file round trip, so applications that

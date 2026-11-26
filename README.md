@@ -137,6 +137,10 @@ SNTP 時刻取得を確認しています。実機（X68000Z XVI）での iperf
 スループット実測レポートは
 [compat-check/IPERF-REPORT.md](compat-check/IPERF-REPORT.md) にあります。
 
+イーサネット機能を持たない ix68k でも、HOSTDRV の共有フォルダ経由で
+hfsnet が動作します。httpclient.x、iperf.x、WebXpression Plus の
+動作を確認済みです（iperf クライアントで 0.77 Mb/s）。
+
 ## 既知の限界
 
 - 遅延: 1回の TI 呼び出しがファイル往復になるため、細かい読み書きを
