@@ -14,7 +14,7 @@ hfsnet is a driver that brings TCP/IP networking to the X68000 /
 Human68k. Using only the host file system feature (such as XEiJ's **HFS**, WebX68k's **HostFS**, or ix68k's **HOSTDRV**),
 it provides a Keisoku Giken **inetd.x-compatible
 API** (the TCP/IP driver calling convention, the so-called TI entry).
-For XEiJ and WebX68k, there is currently no other way to connect to
+For XEiJ, WebX68k, and ix68k, there is currently no other way to connect to
 a network without additional hardware.
 
 Existing communication applications that use the inetd.x-compatible
