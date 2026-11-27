@@ -132,6 +132,11 @@ class Host:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sl.state = ST_CLOSED
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if sl.udp:
+            # ブロードキャスト宛の sendto には SO_BROADCAST が要る。無いと
+            # macOS 等で sendto が OSError で拒否され、ゲスト側の SEND が
+            # result=-1 になる (OMNIMSG.X の UDP チャット送信で実測)。
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.setblocking(False)
         sl.sock = s
         return 0, 0, 0, b""
