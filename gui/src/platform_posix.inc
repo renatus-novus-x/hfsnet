@@ -36,6 +36,9 @@ sock_t make_socket(int type)
         return kInvalidSock;
     int one = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    if (type == SOCK_DGRAM)
+        // ブロードキャスト宛の sendto に要る (Python 版ホストと挙動を揃える)
+        setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one));
 #if defined(__APPLE__)
     setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
 #endif

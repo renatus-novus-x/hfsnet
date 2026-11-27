@@ -46,6 +46,9 @@ sock_t make_socket(int type)
         return kInvalidSock;
     BOOL one = TRUE;
     setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const char *)&one, sizeof(one));
+    if (type == SOCK_DGRAM)
+        // ブロードキャスト宛の sendto に要る (Python 版ホストと挙動を揃える)
+        setsockopt(s, SOL_SOCKET, SO_BROADCAST, (const char *)&one, sizeof(one));
     set_nonblocking(s);
     return (sock_t)s;
 }
