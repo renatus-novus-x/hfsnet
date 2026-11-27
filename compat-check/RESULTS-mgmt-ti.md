@@ -118,6 +118,36 @@ compat-check/mgmt-webx.mp4（86 秒、ゲスト画面にクロップ済み。
   domain None
 - ARP.X -a → 空表で無言終了
 
+## 検証結果（ix68k、2026-11-26 17:25〜17:36）
+
+環境: ix68k Release v20261125（Muse VM、Xvfb :93、SCSI HDD ブート、
+HOSTDRV 共有フォルダ share/ が D:）。相方は host/hfsnethost.py
+（share/TCPPACK 監視、poll 10 ms）。ゲストドライバは管理系検証済み
+ビルド md5 999d35bc5b08dfb0ddfba36c24545c0e（表示バージョン 0.5.0）。
+画面は ix68k 側 runtime/captures/mgmt-*.png、操作は
+runtime/work/mgmt-drive.py（xdotool、日本語キーマップ）。
+
+- HFSNET.X D:\TCPPACK（絶対パス）→ installed 行に続き
+  `hfsnet: host IP address: 198.19.0.2` を表示
+- IFCONFIG.X hf0 / lp0、NETSTAT.X -i / -r、NETSTAT.X（引数なし）、
+  ARP.X -a、INETDCONF.X の表示はすべて XEiJ・XM6・WebX68k と同一
+  （hf0 flags=17 / 198.19.0.2/24、経路表3行、router 0.0.0.0 /
+  rip Off / DNS None / domain None、ARP は空表で無言終了）
+- IFCONFIG.X hf0 down → flags=14<DOWN,NOARP,BROADCAST>、
+  up → flags=15<UP,NOARP,BROADCAST>。XEiJ と同一
+- INETDCONF.X +router 198.19.0.1 / +dns 198.19.0.53 の設定と
+  読み戻しも一致。'+' は xdotool 経由で直接入力できた
+  （XEiJ の VNC リグでは BAT 経由が必要だった点のみ相違）
+- PING.X 127.0.0.1 と PING.X -c 3 127.0.0.1 は、ホスト側で
+  ICMP の OPEN が result=-1 となり、**無言でプロンプトへ戻った**。
+  XEiJ / XM6 の旧記録（RESULTS.md、RESULTS-xm6typeg.md）の
+  SIGBUS にはならなかった。旧記録は現行ドライバ以前の可能性が
+  あり、現行ドライバでの XEiJ 再確認は未実施。ICMP 自体が
+  hfsnet の対象外である点は従来どおり
+- 午前中の ix68k セッションで IFCONFIG 等が無出力だったのは、
+  HFSNET.X を絶対パスで常駐させていなかったためと判明
+  （本検証で全項目が正常動作）
+
 ## 未検証・残件
 
 - 実機での管理系表示は未確認
